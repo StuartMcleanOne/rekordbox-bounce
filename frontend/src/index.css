@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #09090f;
+  --surface: #111118;
+  --surface-2: #18181f;
+  --border: #1e1e28;
+  --border-bright: #2a2a38;
+  --text: #c8c8d8;
+  --text-muted: #5a5a72;
+  --text-dim: #3a3a50;
+  --accent: #22d3ee;
+  --accent-dim: rgba(34, 211, 238, 0.12);
+  --accent-glow: rgba(34, 211, 238, 0.25);
+  --danger: #f43f5e;
+  --danger-dim: rgba(244, 63, 94, 0.1);
+  --success: #10b981;
+  --success-dim: rgba(16, 185, 129, 0.1);
+  --amber: #f59e0b;
+  --amber-dim: rgba(245, 158, 11, 0.1);
+
+  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100svh;
+  /* Subtle noise texture */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1, h2, h3 {
+  font-family: 'Syne', 'Segoe UI', system-ui, sans-serif;
+}
+
+code, .mono {
+  font-family: 'IBM Plex Mono', 'Consolas', 'Cascadia Code', monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
