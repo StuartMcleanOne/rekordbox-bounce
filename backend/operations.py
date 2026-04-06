@@ -3,6 +3,16 @@ from pathlib import Path
 from backend.scanner import scan_folder
 
 
+def _write_playlist(folder_a: Path, folder_b_name: str, moved_files: list[str]) -> Path:
+    """Write a .m3u playlist to folder_a listing the full paths of moved files."""
+    playlist_path = folder_a / f"{folder_b_name}.m3u"
+    lines = ["#EXTM3U"]
+    for filename in moved_files:
+        lines.append(str(folder_a / filename))
+    playlist_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return playlist_path
+
+
 def get_quarantine_dir(folder_a: str) -> Path:
     """Quarantine folder lives in the parent of A, outside Rekordbox's watch."""
     return Path(folder_a).parent / "RekordboxBounce"
@@ -61,11 +71,15 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) 
             except Exception as e:
                 folder_errors.append({"file": b_filename, "error": str(e)})
 
+        playlist_path = None
+        if moved:
+            playlist_path = _write_playlist(dest_dir, folder_b_name, moved)
+
         per_folder_results.append({
             "folder_b": folder_b,
             "folder_b_name": folder_b_name,
             "moved": moved,
-            "playlist_path": None,
+            "playlist_path": str(playlist_path) if playlist_path else None,
             "errors": folder_errors,
         })
         errors.extend(folder_errors)

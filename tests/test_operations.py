@@ -49,3 +49,52 @@ def test_execute_keeps_original_b_filename(tmp_path):
 
     assert (a / "DJ Mix Vol1.mp3").exists()
     assert result["per_folder"][0]["moved"] == ["DJ Mix Vol1.mp3"]
+
+
+def test_execute_creates_m3u_playlist(tmp_path):
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+    _touch(b, "New Track.mp3")
+
+    compare_result = _mock_compare(
+        str(a), [str(b)],
+        per_folder=[{
+            "folder_b": str(b),
+            "folder_b_name": "B",
+            "move_to_a": ["New Track.mp3"],
+            "counts": {"total_b": 1, "move_to_a": 1},
+        }]
+    )
+
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result):
+        result = execute_sync(str(a), [str(b)], files_to_keep=[])
+
+    playlist_path = Path(result["per_folder"][0]["playlist_path"])
+    assert playlist_path.exists()
+    assert playlist_path.name == "B.m3u"
+    assert playlist_path.parent == a
+    content = playlist_path.read_text()
+    assert "#EXTM3U" in content
+    assert "New Track.mp3" in content
+
+
+def test_execute_no_playlist_when_nothing_moved(tmp_path):
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+
+    compare_result = _mock_compare(
+        str(a), [str(b)],
+        per_folder=[{
+            "folder_b": str(b),
+            "folder_b_name": "B",
+            "move_to_a": [],
+            "counts": {"total_b": 0, "move_to_a": 0},
+        }]
+    )
+
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result):
+        result = execute_sync(str(a), [str(b)], files_to_keep=[])
+
+    assert result["per_folder"][0]["playlist_path"] is None
