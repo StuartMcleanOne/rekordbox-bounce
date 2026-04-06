@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend.comparator import compare_folders
+from backend.comparator import compare_folders_multi
 from backend.operations import execute_sync, get_quarantine_dir, undo_sync
 
 app = FastAPI(title="Rekordbox Bounce API")
@@ -16,12 +16,12 @@ app.add_middleware(
 
 class PreviewRequest(BaseModel):
     folder_a: str
-    folder_b: str
+    folders_b: list[str]
 
 
 class ExecuteRequest(BaseModel):
     folder_a: str
-    folder_b: str
+    folders_b: list[str]
     files_to_keep: list[str] = []
 
 
@@ -36,7 +36,7 @@ class UndoRequest(BaseModel):
 def preview(req: PreviewRequest):
     """Dry-run: show exactly what will happen."""
     try:
-        result = compare_folders(req.folder_a, req.folder_b)
+        result = compare_folders_multi(req.folder_a, req.folders_b)
         result["quarantine_path"] = str(get_quarantine_dir(req.folder_a))
         return result
     except ValueError as e:
@@ -49,7 +49,7 @@ def preview(req: PreviewRequest):
 def execute(req: ExecuteRequest):
     """Execute the sync. Destructive — only call after user confirms preview."""
     try:
-        return execute_sync(req.folder_a, req.folder_b, req.files_to_keep)
+        return execute_sync(req.folder_a, req.folders_b, req.files_to_keep)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
