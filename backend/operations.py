@@ -97,3 +97,71 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) 
             "error_count": len(errors),
         },
     }
+
+
+def undo_sync(
+    folder_a: str,
+    quarantine_path: str,
+    quarantined: list[str],
+    per_folder: list[dict],
+) -> dict:
+    """
+    Reverse a previous execute_sync:
+    1. Move each quarantined file back from quarantine to folder_a
+    2. Move each moved file back from folder_a to its source folder_b
+    3. Delete playlist files
+    """
+    a = Path(folder_a)
+    quarantine = Path(quarantine_path)
+    errors = []
+    restored_to_a = []
+    restored_to_b_count = 0
+
+    # Restore quarantined files to A
+    for filename in quarantined:
+        src = quarantine / filename
+        dest = a / filename
+        if not src.exists():
+            errors.append({"file": filename, "error": "not found in quarantine"})
+            continue
+        if dest.exists():
+            errors.append({"file": filename, "error": f"'{filename}' already exists in A, skipped"})
+            continue
+        try:
+            shutil.move(str(src), str(dest))
+            restored_to_a.append(filename)
+        except Exception as e:
+            errors.append({"file": filename, "error": str(e)})
+
+    # Move files back to their B folders
+    for pf in per_folder:
+        b = Path(pf["folder_b"])
+        for filename in pf.get("moved", []):
+            src = a / filename
+            dest = b / filename
+            if not src.exists():
+                errors.append({"file": filename, "error": "not found in A"})
+                continue
+            if dest.exists():
+                errors.append({"file": filename, "error": f"'{filename}' already exists in B, skipped"})
+                continue
+            try:
+                shutil.move(str(src), str(dest))
+                restored_to_b_count += 1
+            except Exception as e:
+                errors.append({"file": filename, "error": str(e)})
+
+        # Delete playlist
+        playlist_path = pf.get("playlist_path")
+        if playlist_path:
+            p = Path(playlist_path)
+            if p.exists():
+                p.unlink()
+
+    return {
+        "restored_to_a": restored_to_a,
+        "restored_to_a_count": len(restored_to_a),
+        "restored_to_b_count": restored_to_b_count,
+        "error_count": len(errors),
+        "errors": errors,
+    }

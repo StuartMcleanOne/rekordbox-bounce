@@ -98,3 +98,69 @@ def test_execute_no_playlist_when_nothing_moved(tmp_path):
         result = execute_sync(str(a), [str(b)], files_to_keep=[])
 
     assert result["per_folder"][0]["playlist_path"] is None
+
+
+from backend.operations import undo_sync
+
+
+def test_undo_restores_moved_files_to_b(tmp_path):
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+    moved_file = a / "Track.mp3"
+    moved_file.write_bytes(b"")
+
+    result = undo_sync(
+        folder_a=str(a),
+        quarantine_path=str(tmp_path / "RekordboxBounce"),
+        quarantined=[],
+        per_folder=[{
+            "folder_b": str(b),
+            "moved": ["Track.mp3"],
+            "playlist_path": None,
+        }],
+    )
+
+    assert not moved_file.exists()
+    assert (b / "Track.mp3").exists()
+    assert result["restored_to_b_count"] == 1
+    assert result["error_count"] == 0
+
+
+def test_undo_restores_quarantined_files_to_a(tmp_path):
+    a = tmp_path / "A"
+    quarantine = tmp_path / "RekordboxBounce"
+    a.mkdir(); quarantine.mkdir()
+    q_file = quarantine / "Old Track.mp3"
+    q_file.write_bytes(b"")
+
+    result = undo_sync(
+        folder_a=str(a),
+        quarantine_path=str(quarantine),
+        quarantined=["Old Track.mp3"],
+        per_folder=[],
+    )
+
+    assert not q_file.exists()
+    assert (a / "Old Track.mp3").exists()
+    assert result["restored_to_a_count"] == 1
+
+
+def test_undo_deletes_playlists(tmp_path):
+    a = tmp_path / "A"
+    a.mkdir()
+    playlist = a / "B.m3u"
+    playlist.write_text("#EXTM3U\n")
+
+    undo_sync(
+        folder_a=str(a),
+        quarantine_path=str(tmp_path / "Q"),
+        quarantined=[],
+        per_folder=[{
+            "folder_b": str(tmp_path / "B"),
+            "moved": [],
+            "playlist_path": str(playlist),
+        }],
+    )
+
+    assert not playlist.exists()
