@@ -69,5 +69,39 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
 
 
 def compare_folders_multi(folder_a: str, folders_b: list[str]) -> dict:
-    """Stub — implemented in Task 2."""
-    raise NotImplementedError
+    """
+    Compare A against multiple B folders.
+    A file in A is kept (not quarantined) if matched by ANY B folder.
+    Returns global delete/keep lists plus per-folder move_to_a lists.
+    """
+    files_a = scan_folder(folder_a)
+    all_matched_a: set[str] = set()
+    per_folder = []
+
+    for folder_b in folders_b:
+        result = compare_folders(folder_a, folder_b)
+        all_matched_a.update(result["keep_in_a"])
+        per_folder.append({
+            "folder_b": folder_b,
+            "folder_b_name": Path(folder_b).name,
+            "move_to_a": result["move_to_a"],
+            "counts": {
+                "total_b": result["counts"]["total_b"],
+                "move_to_a": result["counts"]["move_to_a"],
+            },
+        })
+
+    global_delete = sorted(n for n in files_a if n not in all_matched_a)
+    global_keep = sorted(all_matched_a)
+
+    return {
+        "global_delete_from_a": global_delete,
+        "global_keep_in_a": global_keep,
+        "per_folder": per_folder,
+        "counts": {
+            "total_a": len(files_a),
+            "to_quarantine": len(global_delete),
+            "keep_in_a": len(global_keep),
+            "total_adding": sum(len(pf["move_to_a"]) for pf in per_folder),
+        },
+    }
