@@ -14,7 +14,8 @@ const STEPS = [
 
 export default function App() {
   const [step, setStep] = useState('setup')
-  const [folders, setFolders] = useState({ folder_a: '', folder_b: '' })
+  const [folderA, setFolderA] = useState('')
+  const [foldersB, setFoldersB] = useState([''])
   const [preview, setPreview] = useState(null)
   const [filesToKeep, setFilesToKeep] = useState([])
   const [result, setResult] = useState(null)
@@ -27,16 +28,14 @@ export default function App() {
       <header style={{
         borderBottom: '1px solid var(--border)',
         padding: '20px 40px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'white', letterSpacing: '-0.5px' }}>
             Rekordbox Bounce
           </h1>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.05em' }}>
-            v0.1
+            v0.2
           </span>
         </div>
 
@@ -78,8 +77,10 @@ export default function App() {
         <div style={{ width: '100%', maxWidth: '680px' }}>
           {step === 'setup' && (
             <FolderSetup
-              folders={folders}
-              setFolders={setFolders}
+              folderA={folderA}
+              setFolderA={setFolderA}
+              foldersB={foldersB}
+              setFoldersB={setFoldersB}
               onNext={(p) => { setPreview(p); setFilesToKeep([]); setStep('preview') }}
             />
           )}
@@ -94,7 +95,8 @@ export default function App() {
           )}
           {step === 'execute' && (
             <ExecuteStep
-              folders={folders}
+              folderA={folderA}
+              foldersB={foldersB}
               filesToKeep={filesToKeep}
               onResult={(r) => { setResult(r); setStep('done') }}
               onBack={() => setStep('preview')}
@@ -103,9 +105,11 @@ export default function App() {
           {step === 'done' && (
             <Done
               result={result}
+              folderA={folderA}
               onReset={() => {
                 setStep('setup')
-                setFolders({ folder_a: '', folder_b: '' })
+                setFolderA('')
+                setFoldersB([''])
                 setPreview(null)
                 setFilesToKeep([])
                 setResult(null)
