@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBack, onConfirm }) {
-  const { delete_from_a, keep_in_a, move_to_a, rename_map, counts, quarantine_path } = preview
-  const quarantineCount = counts.delete_from_a - filesToKeep.length
+  const { global_delete_from_a, global_keep_in_a, per_folder, quarantine_path, counts } = preview
+  const quarantineCount = counts.to_quarantine - filesToKeep.length
 
   const toggleKeep = (f) =>
     setFilesToKeep(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])
@@ -27,19 +27,13 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
       }}>
         {[
           { value: counts.total_a, label: 'Files in A', color: 'var(--text)' },
-          { value: counts.total_b, label: 'Files in B', color: 'var(--text)' },
+          { value: per_folder.reduce((s, pf) => s + pf.counts.total_b, 0), label: 'Files in B', color: 'var(--text)' },
           { value: quarantineCount, label: 'To quarantine', color: 'var(--danger)' },
-          { value: counts.move_to_a, label: 'Adding to A', color: 'var(--accent)' },
+          { value: counts.total_adding, label: 'Adding to A', color: 'var(--accent)' },
         ].map(s => (
-          <div key={s.label} style={{
-            padding: '18px 16px', background: 'var(--surface)', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '26px', fontFamily: 'Syne', fontWeight: 700, color: s.color, lineHeight: 1 }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px', fontFamily: 'IBM Plex Mono' }}>
-              {s.label}
-            </div>
+          <div key={s.label} style={{ padding: '18px 16px', background: 'var(--surface)', textAlign: 'center' }}>
+            <div style={{ fontSize: '26px', fontFamily: 'Syne', fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px', fontFamily: 'IBM Plex Mono' }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -56,11 +50,11 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
           badge={`${filesToKeep.length} kept`}
           badgeVisible={filesToKeep.length > 0}
         >
-          {delete_from_a.length === 0 ? (
+          {global_delete_from_a.length === 0 ? (
             <EmptyState text="Nothing to quarantine" />
           ) : (
             <ul style={{ padding: '0 0 4px' }}>
-              {delete_from_a.map(f => {
+              {global_delete_from_a.map(f => {
                 const kept = filesToKeep.includes(f)
                 return (
                   <li
@@ -78,18 +72,14 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
                     <span style={{
                       fontFamily: 'IBM Plex Mono', fontSize: '12px',
                       color: kept ? 'var(--accent)' : 'var(--text-muted)',
-                      flex: 1, textDecoration: kept ? 'none' : undefined,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{f}</span>
                     {kept && (
                       <span style={{
                         fontSize: '10px', fontFamily: 'IBM Plex Mono',
                         color: 'var(--accent)', padding: '2px 8px',
-                        background: 'var(--accent-dim)', borderRadius: '4px',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        KEEPING
-                      </span>
+                        background: 'var(--accent-dim)', borderRadius: '4px', whiteSpace: 'nowrap',
+                      }}>KEEPING</span>
                     )}
                   </li>
                 )
@@ -98,7 +88,7 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
           )}
         </Section>
 
-        {/* Keeping in A */}
+        {/* Staying in A */}
         <Section
           title={`${counts.keep_in_a} staying in A`}
           meta="Matched — cue points safe, not touched"
@@ -107,11 +97,11 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
           borderColor="rgba(16,185,129,0.2)"
           defaultOpen={false}
         >
-          {keep_in_a.length === 0 ? (
+          {global_keep_in_a.length === 0 ? (
             <EmptyState text="No matched files" />
           ) : (
             <ul style={{ padding: '0 0 4px' }}>
-              {keep_in_a.map(f => (
+              {global_keep_in_a.map(f => (
                 <li key={f} style={{
                   padding: '9px 20px', borderTop: '1px solid var(--border)',
                   fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)',
@@ -122,42 +112,32 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
           )}
         </Section>
 
-        {/* Moving to A */}
-        <Section
-          title={`${counts.move_to_a} new files coming in`}
-          meta="Renamed to match A's convention then moved"
-          color="var(--accent)"
-          dimColor="var(--accent-dim)"
-          borderColor="rgba(34,211,238,0.2)"
-          defaultOpen
-        >
-          {move_to_a.length === 0 ? (
-            <EmptyState text="No new files to add" />
-          ) : (
-            <ul style={{ padding: '0 0 4px' }}>
-              {move_to_a.map(f => {
-                const renamed = rename_map?.[f]
-                const isRenamed = renamed && renamed !== f
-                return (
+        {/* Per-folder incoming */}
+        {per_folder.map((pf, i) => (
+          <Section
+            key={i}
+            title={`${pf.counts.move_to_a} new files from ${pf.folder_b_name}`}
+            meta="Will be moved into A with original filename"
+            color="var(--accent)"
+            dimColor="var(--accent-dim)"
+            borderColor="rgba(34,211,238,0.2)"
+            defaultOpen
+          >
+            {pf.move_to_a.length === 0 ? (
+              <EmptyState text="No new files to add" />
+            ) : (
+              <ul style={{ padding: '0 0 4px' }}>
+                {pf.move_to_a.map(f => (
                   <li key={f} style={{
                     padding: '10px 20px', borderTop: '1px solid var(--border)',
-                    fontFamily: 'IBM Plex Mono', fontSize: '12px',
-                  }}>
-                    {isRenamed ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ color: 'var(--text-dim)', textDecoration: 'line-through' }}>{f}</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>→</span>
-                        <span style={{ color: 'var(--accent)' }}>{renamed}</span>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>{f}</span>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </Section>
+                    fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{f}</li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        ))}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
@@ -183,10 +163,7 @@ function Section({ title, meta, color, dimColor, borderColor, defaultOpen, child
         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
         <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', flex: 1, fontFamily: 'Syne' }}>{title}</span>
         {badgeVisible && (
-          <span style={{
-            fontSize: '10px', fontFamily: 'IBM Plex Mono', color: 'var(--accent)',
-            padding: '2px 8px', background: 'var(--accent-dim)', borderRadius: '4px',
-          }}>{badge}</span>
+          <span style={{ fontSize: '10px', fontFamily: 'IBM Plex Mono', color: 'var(--accent)', padding: '2px 8px', background: 'var(--accent-dim)', borderRadius: '4px' }}>{badge}</span>
         )}
         {meta && (
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
