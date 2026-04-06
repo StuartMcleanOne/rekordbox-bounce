@@ -74,18 +74,19 @@ def undo(req: UndoRequest):
 def pick_folder():
     """Open native OS folder picker and return the selected path."""
     try:
-        import tkinter as tk
-        from tkinter import filedialog
+        import subprocess
         import sys
-        root = tk.Tk()
-        root.withdraw()
-        try:
-            root.wm_attributes('-topmost', True)
-        except Exception:
-            pass  # Not fatal if topmost fails on some platforms
-        path = filedialog.askdirectory(title="Select folder")
-        root.destroy()
-        # Normalise to forward slashes for consistency in the UI
+        # Run tkinter in a subprocess so it's always on the main thread (macOS requirement)
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import tkinter as tk; from tkinter import filedialog; "
+             "root = tk.Tk(); root.withdraw(); "
+             "root.wm_attributes('-topmost', True); "
+             "path = filedialog.askdirectory(title='Select folder'); "
+             "root.destroy(); print(path)"],
+            capture_output=True, text=True, timeout=60,
+        )
+        path = result.stdout.strip()
         normalized = path.replace("\\", "/") if path else ""
         return {"path": normalized}
     except Exception as e:
