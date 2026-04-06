@@ -1,18 +1,20 @@
 import { useState, useCallback } from 'react'
 
-export default function FolderSetup({ folders, setFolders, onNext }) {
+export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB, onNext }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const canSubmit = folderA.trim() && foldersB.length > 0 && foldersB.every(f => f.trim())
+
   const handleSubmit = async () => {
-    if (!folders.folder_a.trim() || !folders.folder_b.trim()) return
+    if (!canSubmit) return
     setLoading(true)
     setError(null)
     try {
       const res = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(folders),
+        body: JSON.stringify({ folder_a: folderA, folders_b: foldersB }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -26,7 +28,12 @@ export default function FolderSetup({ folders, setFolders, onNext }) {
     }
   }
 
-  const setFolder = (key, val) => setFolders(f => ({ ...f, [key]: val }))
+  const updateB = (i, val) =>
+    setFoldersB(prev => prev.map((f, idx) => idx === i ? val : f))
+
+  const addB = () => setFoldersB(prev => [...prev, ''])
+
+  const removeB = (i) => setFoldersB(prev => prev.filter((_, idx) => idx !== i))
 
   return (
     <div>
@@ -45,17 +52,51 @@ export default function FolderSetup({ folders, setFolders, onNext }) {
           description="Your existing library with cue points"
           tag="PROTECTED"
           tagColor="var(--success)"
-          value={folders.folder_a}
-          onChange={(v) => setFolder('folder_a', v)}
+          value={folderA}
+          onChange={setFolderA}
         />
-        <FolderZone
-          label="B — New Downloads"
-          description="Fresh tracks to merge in"
-          tag="SOURCE"
-          tagColor="var(--accent)"
-          value={folders.folder_b}
-          onChange={(v) => setFolder('folder_b', v)}
-        />
+
+        {foldersB.map((val, i) => (
+          <div key={i} style={{ position: 'relative' }}>
+            <FolderZone
+              label={foldersB.length > 1 ? `B${i + 1} — New Downloads` : 'B — New Downloads'}
+              description="Fresh tracks to merge in"
+              tag="SOURCE"
+              tagColor="var(--accent)"
+              value={val}
+              onChange={(v) => updateB(i, v)}
+            />
+            {foldersB.length > 1 && (
+              <button
+                onClick={() => removeB(i)}
+                style={{
+                  position: 'absolute', top: '16px', right: '16px',
+                  background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  color: 'var(--danger)', borderRadius: '6px',
+                  padding: '4px 10px', cursor: 'pointer', fontSize: '12px',
+                  fontFamily: 'IBM Plex Sans',
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+
+        <button
+          onClick={addB}
+          style={{
+            padding: '12px', borderRadius: '10px',
+            background: 'transparent', border: '1px dashed var(--border-bright)',
+            color: 'var(--text-muted)', cursor: 'pointer',
+            fontSize: '13px', fontFamily: 'IBM Plex Sans',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-bright)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        >
+          + Add another B folder
+        </button>
       </div>
 
       {error && (
@@ -71,21 +112,15 @@ export default function FolderSetup({ folders, setFolders, onNext }) {
 
       <button
         onClick={handleSubmit}
-        disabled={loading || !folders.folder_a.trim() || !folders.folder_b.trim()}
+        disabled={loading || !canSubmit}
         style={{
           marginTop: '24px', width: '100%',
           padding: '16px', borderRadius: '10px',
-          background: loading || !folders.folder_a.trim() || !folders.folder_b.trim()
-            ? 'var(--surface-2)'
-            : 'var(--accent)',
-          color: loading || !folders.folder_a.trim() || !folders.folder_b.trim()
-            ? 'var(--text-dim)'
-            : '#000',
-          border: 'none', cursor: loading || !folders.folder_a.trim() || !folders.folder_b.trim()
-            ? 'not-allowed' : 'pointer',
+          background: loading || !canSubmit ? 'var(--surface-2)' : 'var(--accent)',
+          color: loading || !canSubmit ? 'var(--text-dim)' : '#000',
+          border: 'none', cursor: loading || !canSubmit ? 'not-allowed' : 'pointer',
           fontSize: '14px', fontWeight: 600, fontFamily: 'IBM Plex Sans',
-          letterSpacing: '0.02em',
-          transition: 'all 0.15s',
+          letterSpacing: '0.02em', transition: 'all 0.15s',
         }}
       >
         {loading ? 'Scanning...' : 'Scan & Preview →'}
@@ -107,26 +142,11 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
     }
   }
 
-  const onDragOver = useCallback((e) => {
-    e.preventDefault()
-    setDragging(true)
-  }, [])
-
+  const onDragOver = useCallback((e) => { e.preventDefault(); setDragging(true) }, [])
   const onDragLeave = useCallback(() => setDragging(false), [])
-
   const onDrop = useCallback((e) => {
     e.preventDefault()
     setDragging(false)
-    // Try to read path from dropped items (works in some Electron/desktop contexts)
-    const items = e.dataTransfer.items
-    if (items && items.length > 0) {
-      const entry = items[0].webkitGetAsEntry?.()
-      if (entry && entry.isDirectory) {
-        // Can't get full path from browser security sandbox — open native picker
-        pickFolder()
-        return
-      }
-    }
     pickFolder()
   }, [])
 
@@ -143,19 +163,14 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
         overflow: 'hidden',
       }}
     >
-      {/* Zone header */}
-      <div style={{
-        padding: '16px 20px 0',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
+      <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'white', fontFamily: 'Syne' }}>{label}</span>
             <span style={{
               fontSize: '9px', fontFamily: 'IBM Plex Mono', fontWeight: 500,
               color: tagColor, padding: '2px 6px',
-              border: `1px solid ${tagColor}40`,
-              borderRadius: '4px', letterSpacing: '0.08em',
+              border: `1px solid ${tagColor}40`, borderRadius: '4px', letterSpacing: '0.08em',
             }}>{tag}</span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</p>
@@ -176,30 +191,20 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
         </button>
       </div>
 
-      {/* Drop area */}
       <div
         onClick={pickFolder}
         style={{
-          margin: '12px 20px 20px',
-          padding: '20px',
-          borderRadius: '8px',
+          margin: '12px 20px 20px', padding: '20px', borderRadius: '8px',
           border: `1px dashed ${dragging ? tagColor : 'var(--border-bright)'}`,
           background: dragging ? `${tagColor}08` : 'var(--surface-2)',
-          cursor: 'pointer',
-          transition: 'all 0.15s',
-          minHeight: '70px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
+          cursor: 'pointer', transition: 'all 0.15s', minHeight: '70px',
+          display: 'flex', alignItems: 'center', gap: '12px',
         }}
       >
         {value ? (
           <>
             <FolderIcon color={tagColor} />
-            <span style={{
-              fontFamily: 'IBM Plex Mono', fontSize: '12px',
-              color: 'var(--text)', wordBreak: 'break-all', lineHeight: '1.5',
-            }}>
+            <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text)', wordBreak: 'break-all', lineHeight: '1.5' }}>
               {value}
             </span>
           </>
@@ -213,7 +218,6 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
         )}
       </div>
 
-      {/* Manual path input */}
       {value && (
         <div style={{ padding: '0 20px 16px' }}>
           <input
@@ -225,8 +229,7 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
               width: '100%', padding: '8px 12px',
               background: 'transparent', border: '1px solid var(--border)',
               borderRadius: '6px', color: 'var(--text-muted)',
-              fontSize: '11px', fontFamily: 'IBM Plex Mono',
-              outline: 'none',
+              fontSize: '11px', fontFamily: 'IBM Plex Mono', outline: 'none',
             }}
           />
         </div>
