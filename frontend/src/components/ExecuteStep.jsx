@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function ExecuteStep({ folders, filesToKeep, onResult, onBack }) {
+export default function ExecuteStep({ folderA, foldersB, filesToKeep, onResult, onBack }) {
   const [confirmed, setConfirmed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -12,7 +12,7 @@ export default function ExecuteStep({ folders, filesToKeep, onResult, onBack }) 
       const res = await fetch('/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...folders, files_to_keep: filesToKeep }),
+        body: JSON.stringify({ folder_a: folderA, folders_b: foldersB, files_to_keep: filesToKeep }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -49,7 +49,8 @@ export default function ExecuteStep({ folders, filesToKeep, onResult, onBack }) 
             </p>
             <ul style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.8', paddingLeft: '16px' }}>
               <li>Removed files go to <span style={{ fontFamily: 'IBM Plex Mono', color: 'var(--text)' }}>RekordboxBounce/</span> in the parent of A — not permanently deleted</li>
-              <li>New files move from B into A, renamed to match A's convention</li>
+              <li>New files move from {foldersB.length > 1 ? `${foldersB.length} B folders` : 'B'} into A with their original filenames</li>
+              <li>A playlist (.m3u) will be saved in A for each B folder</li>
               {filesToKeep.length > 0 && (
                 <li style={{ color: 'var(--accent)' }}>
                   {filesToKeep.length} file{filesToKeep.length > 1 ? 's' : ''} you marked to keep will stay in A
@@ -81,7 +82,7 @@ export default function ExecuteStep({ folders, filesToKeep, onResult, onBack }) 
         </div>
         <span style={{ fontSize: '14px', color: 'var(--text)', lineHeight: '1.5' }}
           onClick={() => setConfirmed(c => !c)}>
-          I understand quarantined files can be recovered manually, but new files moving from B cannot be undone
+          I understand this will move files. Quarantined files can be restored with Undo on the next screen.
         </span>
       </label>
 
