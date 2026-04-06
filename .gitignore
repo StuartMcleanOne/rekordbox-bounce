@@ -24,3 +24,6 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Git worktrees
+.worktrees/
