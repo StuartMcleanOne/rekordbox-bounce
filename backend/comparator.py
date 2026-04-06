@@ -1,5 +1,5 @@
 from pathlib import Path
-from backend.scanner import scan_folder, read_tags, normalize_name, build_filename
+from backend.scanner import scan_folder, read_tags, normalize_name
 
 
 def _tag_key(tags: dict) -> str:
@@ -56,27 +56,20 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
     keep_in_a = sorted(matched_a)
     new_b_files = sorted(n for n in files_b if n not in matched_b)
 
-    # Build rename map — only rename if the tag-derived name differs from original
-    rename_map: dict[str, str] = {}
-    for b_name in new_b_files:
-        path = files_b[b_name]
-        tags = read_tags(path)
-        if tags:
-            candidate = build_filename(tags["artist"], tags["title"], path.suffix.lower())
-            rename_map[b_name] = candidate if candidate != b_name else b_name
-        else:
-            rename_map[b_name] = b_name  # no tags — keep original name
-
     return {
         "delete_from_a": delete_from_a,
         "keep_in_a": keep_in_a,
         "move_to_a": new_b_files,
-        "rename_map": rename_map,
         "counts": {
             "delete_from_a": len(delete_from_a),
-            "keep_in_a": len(keep_in_a),
+            "keep_in_a": len(matched_a),
             "move_to_a": len(new_b_files),
             "total_a": len(files_a),
             "total_b": len(files_b),
         },
     }
+
+
+def compare_folders_multi(folder_a: str, folders_b: list[str]) -> dict:
+    """Stub — implemented in Task 2."""
+    raise NotImplementedError
