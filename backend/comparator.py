@@ -15,8 +15,6 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
         delete_from_a   — in A but not in B (user no longer wants)
         keep_in_a       — matched between A and B (cue points safe)
         move_to_a       — new in B, not in A
-        rename_map      — {b_filename: target_filename} for files moving to A
-                          only differs from b_filename when a rename is needed
         counts          — summary numbers
     """
     files_a = scan_folder(folder_a)
