@@ -1,5 +1,5 @@
 from pathlib import Path
-from backend.scanner import scan_folder, read_tags, normalize_name, build_filename
+from backend.scanner import scan_folder, read_tags, normalize_name
 
 
 def _tag_key(tags: dict) -> str:
@@ -15,8 +15,6 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
         delete_from_a   — in A but not in B (user no longer wants)
         keep_in_a       — matched between A and B (cue points safe)
         move_to_a       — new in B, not in A
-        rename_map      — {b_filename: target_filename} for files moving to A
-                          only differs from b_filename when a rename is needed
         counts          — summary numbers
     """
     files_a = scan_folder(folder_a)
@@ -56,27 +54,59 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
     keep_in_a = sorted(matched_a)
     new_b_files = sorted(n for n in files_b if n not in matched_b)
 
-    # Build rename map — only rename if the tag-derived name differs from original
-    rename_map: dict[str, str] = {}
-    for b_name in new_b_files:
-        path = files_b[b_name]
-        tags = read_tags(path)
-        if tags:
-            candidate = build_filename(tags["artist"], tags["title"], path.suffix.lower())
-            rename_map[b_name] = candidate if candidate != b_name else b_name
-        else:
-            rename_map[b_name] = b_name  # no tags — keep original name
-
     return {
         "delete_from_a": delete_from_a,
         "keep_in_a": keep_in_a,
         "move_to_a": new_b_files,
-        "rename_map": rename_map,
         "counts": {
             "delete_from_a": len(delete_from_a),
-            "keep_in_a": len(keep_in_a),
+            "keep_in_a": len(matched_a),
             "move_to_a": len(new_b_files),
             "total_a": len(files_a),
             "total_b": len(files_b),
+        },
+    }
+
+
+def compare_folders_multi(folder_a: str, folders_b: list[str]) -> dict:
+    """
+    Compare A against multiple B folders.
+    A file in A is kept (not quarantined) if matched by ANY B folder.
+    Returns global delete/keep lists plus per-folder move_to_a lists.
+    """
+    files_a = scan_folder(folder_a)
+    all_matched_a: set[str] = set()
+    per_folder = []
+
+    claimed_filenames: set[str] = set()  # filenames already claimed by an earlier B folder
+
+    for folder_b in folders_b:
+        result = compare_folders(folder_a, folder_b)
+        all_matched_a.update(result["keep_in_a"])
+        # Exclude files already claimed by a previous B folder (same filename)
+        move_to_a = [f for f in result["move_to_a"] if f not in claimed_filenames]
+        claimed_filenames.update(move_to_a)
+        per_folder.append({
+            "folder_b": folder_b,
+            "folder_b_name": Path(folder_b).name,
+            "move_to_a": move_to_a,
+            "counts": {
+                "total_b": result["counts"]["total_b"],
+                "move_to_a": len(move_to_a),
+            },
+        })
+
+    global_delete = sorted(n for n in files_a if n not in all_matched_a)
+    global_keep = sorted(all_matched_a)
+
+    return {
+        "global_delete_from_a": global_delete,
+        "global_keep_in_a": global_keep,
+        "per_folder": per_folder,
+        "counts": {
+            "total_a": len(files_a),
+            "to_quarantine": len(global_delete),
+            "keep_in_a": len(global_keep),
+            "total_adding": sum(len(pf["move_to_a"]) for pf in per_folder),
         },
     }
