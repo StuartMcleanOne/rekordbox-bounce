@@ -42,13 +42,13 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
           Select your folders
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6' }}>
-          A is your live Rekordbox library. B is your new downloads. Nothing changes until you confirm.
+          Library is your live Rekordbox folder. Sources are your new downloads. Nothing changes until you confirm.
         </p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <FolderZone
-          label="A — Rekordbox Library"
+          label="Library"
           description="Your existing library with cue points"
           tag="PROTECTED"
           tagColor="var(--success)"
@@ -57,30 +57,16 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
         />
 
         {foldersB.map((val, i) => (
-          <div key={i} style={{ position: 'relative' }}>
-            <FolderZone
-              label={foldersB.length > 1 ? `B${i + 1} — New Downloads` : 'B — New Downloads'}
-              description="Fresh tracks to merge in"
-              tag="SOURCE"
-              tagColor="var(--accent)"
-              value={val}
-              onChange={(v) => updateB(i, v)}
-            />
-            {foldersB.length > 1 && (
-              <button
-                onClick={() => removeB(i)}
-                style={{
-                  position: 'absolute', top: '16px', right: '16px',
-                  background: 'var(--surface-2)', border: '1px solid var(--border)',
-                  color: 'var(--danger)', borderRadius: '6px',
-                  padding: '4px 10px', cursor: 'pointer', fontSize: '12px',
-                  fontFamily: 'IBM Plex Sans',
-                }}
-              >
-                Remove
-              </button>
-            )}
-          </div>
+          <FolderZone
+            key={i}
+            label={`Source ${i + 1}`}
+            description="Fresh tracks to merge in"
+            tag="SOURCE"
+            tagColor="var(--accent)"
+            value={val}
+            onChange={(v) => updateB(i, v)}
+            onRemove={foldersB.length > 1 ? () => removeB(i) : null}
+          />
         ))}
 
         <button
@@ -95,7 +81,7 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-bright)'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
-          + Add another B folder
+          + Add another source folder
         </button>
       </div>
 
@@ -129,7 +115,7 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
   )
 }
 
-function FolderZone({ label, description, tag, tagColor, value, onChange }) {
+function FolderZone({ label, description, tag, tagColor, value, onChange, onRemove }) {
   const [dragging, setDragging] = useState(false)
 
   const pickFolder = async () => {
@@ -175,20 +161,38 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</p>
         </div>
-        <button
-          onClick={pickFolder}
-          style={{
-            padding: '8px 14px', borderRadius: '7px',
-            background: 'var(--surface-2)', border: '1px solid var(--border-bright)',
-            color: 'var(--text)', fontSize: '12px', cursor: 'pointer',
-            fontFamily: 'IBM Plex Sans', fontWeight: 500,
-            transition: 'all 0.15s', whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = tagColor; e.currentTarget.style.color = tagColor }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-bright)'; e.currentTarget.style.color = 'var(--text)' }}
-        >
-          Browse
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onRemove && (
+            <button
+              onClick={onRemove}
+              style={{
+                padding: '8px 14px', borderRadius: '7px',
+                background: 'var(--surface-2)', border: '1px solid var(--border)',
+                color: 'var(--danger)', fontSize: '12px', cursor: 'pointer',
+                fontFamily: 'IBM Plex Sans', fontWeight: 500,
+                transition: 'all 0.15s', whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--danger)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+            >
+              Remove
+            </button>
+          )}
+          <button
+            onClick={pickFolder}
+            style={{
+              padding: '8px 14px', borderRadius: '7px',
+              background: 'var(--surface-2)', border: '1px solid var(--border-bright)',
+              color: 'var(--text)', fontSize: '12px', cursor: 'pointer',
+              fontFamily: 'IBM Plex Sans', fontWeight: 500,
+              transition: 'all 0.15s', whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = tagColor; e.currentTarget.style.color = tagColor }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-bright)'; e.currentTarget.style.color = 'var(--text)' }}
+          >
+            Browse
+          </button>
+        </div>
       </div>
 
       <div
@@ -212,7 +216,7 @@ function FolderZone({ label, description, tag, tagColor, value, onChange }) {
           <div style={{ textAlign: 'center', width: '100%' }}>
             <div style={{ fontSize: '22px', marginBottom: '6px', opacity: 0.4 }}>⌘</div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {dragging ? 'Release to select' : 'Drop folder here or click Browse'}
+              Click to browse
             </p>
           </div>
         )}

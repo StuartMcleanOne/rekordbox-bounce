@@ -78,16 +78,21 @@ def compare_folders_multi(folder_a: str, folders_b: list[str]) -> dict:
     all_matched_a: set[str] = set()
     per_folder = []
 
+    claimed_filenames: set[str] = set()  # filenames already claimed by an earlier B folder
+
     for folder_b in folders_b:
         result = compare_folders(folder_a, folder_b)
         all_matched_a.update(result["keep_in_a"])
+        # Exclude files already claimed by a previous B folder (same filename)
+        move_to_a = [f for f in result["move_to_a"] if f not in claimed_filenames]
+        claimed_filenames.update(move_to_a)
         per_folder.append({
             "folder_b": folder_b,
             "folder_b_name": Path(folder_b).name,
-            "move_to_a": result["move_to_a"],
+            "move_to_a": move_to_a,
             "counts": {
                 "total_b": result["counts"]["total_b"],
-                "move_to_a": result["counts"]["move_to_a"],
+                "move_to_a": len(move_to_a),
             },
         })
 
