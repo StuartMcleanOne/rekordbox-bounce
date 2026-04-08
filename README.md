@@ -110,7 +110,7 @@ Files in A that don't have a match in B are moved to `../RekordboxBounce/` — a
 ### First-time install
 
 ```bash
-git clone https://github.com/yourusername/rekordbox-bounce.git
+git clone https://github.com/StuartMcleanOne/rekordbox-bounce.git
 cd rekordbox-bounce
 
 # Backend
