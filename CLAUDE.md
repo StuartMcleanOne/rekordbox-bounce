@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-**Rekordbox Bounce** is a local web app for safely merging a new music download folder (B) into an existing Rekordbox library folder (A) without overwriting files that have cue points and metadata.
+**Rekordbox Bounce** is a local web app for safely merging new music download folders (Sources) into an existing Rekordbox library folder (Library) without touching files that have cue points and metadata.
 
-**Critical constraint**: Any rename or replacement of a file in A causes Rekordbox to lose its cue points. Files in A must never be renamed, moved, or overwritten.
+**Critical constraint**: Any rename, move, or overwrite of a file in the Library causes Rekordbox to lose its cue points permanently. Library files must never be renamed, moved, or overwritten.
 
 ## Architecture
 
@@ -15,25 +15,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 backend/
-  main.py        — FastAPI app, routes: /api/preview, /api/execute, /api/pick-folder, /api/health
-  scanner.py     — scan_folder(), read_tags(), build_filename(), normalize_name()
-  comparator.py  — compare_folders() — tag-based matching with filename fallback
-  operations.py  — execute_sync() — quarantine + move with rename
+  main.py        — FastAPI app, routes: /api/preview, /api/execute, /api/undo, /api/pick-folder, /api/health
+  scanner.py     — scan_folder(), read_tags(), normalize_name()
+  comparator.py  — compare_folders_multi() — tag-based matching, multi-source, deduplication
+  operations.py  — execute_sync(), undo_sync(), _write_playlist()
 
 frontend/src/
   App.jsx                        — wizard state machine (setup → preview → execute → done)
-  components/FolderSetup.jsx     — folder selection, Browse button calls /api/pick-folder
+  components/FolderSetup.jsx     — Library + Source folder selection, Browse calls /api/pick-folder
   components/PreviewStep.jsx     — preview with per-file keep toggles
   components/ExecuteStep.jsx     — confirmation gate
-  components/Done.jsx            — results summary
+  components/Done.jsx            — results, playlist paths, undo button
 ```
+
+## Folder Terminology
+
+- **Library** (`folder_a` in API) — the existing Rekordbox library. Never touched.
+- **Source / Sources** (`folders_b` in API) — one or more new download folders. Files move from here into Library.
+
+The UI shows "Library" and "Source 1", "Source 2" etc. The API uses `folder_a` / `folders_b` internally.
 
 ## Core Logic
 
-1. **Normalize B** — rename B files to match A's convention (`Artist1_Artist2 Title.ext`) using ID3 tags before comparison
-2. **Compare** — match by ID3 tags (artist+title), fall back to normalized filename
-3. **Quarantine** — files in A not matched in B go to `../RekordboxBounce/` (parent of A, outside Rekordbox's watch)
-4. **Move** — unmatched B files move into A, renamed to match A's convention
+1. **Match** — compare Library against all Sources by ID3 tags (artist+title via mutagen), fall back to normalised filename for untagged files
+2. **Quarantine** — Library files not matched in any Source go to `../RekordboxBounce/` (parent of Library, outside Rekordbox's watch)
+3. **Move** — unmatched Source files move into Library with their original filenames unchanged
+4. **Playlist** — a `.m3u` playlist is written to Library for each Source folder's moved files
+5. **Undo** — full rollback: quarantined files returned to Library, moved files returned to Sources, playlists deleted
+
+**Files are never renamed.** Source files move as-is. The naming convention step was explored and removed — it caused problems and wasn't needed since the source of downloads is controlled separately.
 
 ## Running Locally
 
@@ -58,12 +68,12 @@ cd frontend && npm install
 
 ## Key Decisions
 
-- **Files in A are never touched** — only B files get renamed before moving
+- **Library files are immutable** — source files move as-is; Library files are never touched
 - **Quarantine not delete** — removed files go to `../RekordboxBounce/`, not the trash
-- **Native folder picker** — `/api/pick-folder` uses `tkinter.filedialog` (cross-platform)
-- **Tag matching** — `mutagen` reads ID3/FLAC/etc tags; falls back to filename comparison for untagged files
-- **Naming convention** — `Artist1_Artist2 Title.ext` where multiple artists (comma-separated in tags) are joined with `_`
-- **Windows-first** — all file ops use `pathlib.Path`, paths normalised to forward slashes in the API response
+- **Tag matching** — mutagen reads ID3/FLAC/MP4/AAC tags; falls back to filename comparison for untagged files
+- **Multi-source** — compare_folders_multi() handles N source folders; deduplication prevents the same file moving twice
+- **Native folder picker** — `/api/pick-folder` runs tkinter in a subprocess (macOS main-thread requirement)
+- **Cross-platform** — all file ops use `pathlib.Path`, paths normalised to forward slashes in API responses
 
 ## Design System
 

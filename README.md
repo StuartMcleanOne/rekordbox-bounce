@@ -13,52 +13,53 @@
 
 Rekordbox stores cue points, loops, and hot cues **by file path**. If a file in your library gets renamed, moved, or overwritten — even by a tool trying to help — Rekordbox silently drops everything attached to it. Every cue point, gone.
 
-For DJs with large libraries built over years, this is catastrophic. Manually checking thousands of tracks before merging new downloads isn't realistic. So most people either avoid organising their library or lose metadata and don't notice until they're at a gig.
+For DJs with large libraries built over years, this is catastrophic. Manually checking thousands of tracks before merging new downloads isn't realistic. So most people either avoid organising their library, or lose metadata and don't notice until they're at a gig.
 
-**Rekordbox Bounce solves this.** It merges new downloads into your existing library safely, step by step, with full preview before anything changes. Files in your library are **never renamed, moved, or overwritten** — that constraint is the entire foundation of the app.
+**Rekordbox Bounce solves this.** It merges new downloads into your existing library safely, step by step, with full preview before anything changes. Files in your library are **never renamed, moved, or overwritten**.
 
 ---
 
 ## How It Works
 
 ```
-New downloads (B)  ──►  Normalize filenames using ID3 tags
-                   ──►  Match against library (A) by artist+title tags
-                   ──►  Preview every action before executing
-                   ──►  Quarantine A files not in B  (not delete — quarantine)
-                   ──►  Move new B files into A
+Source folders (new downloads)
+        ──►  Match against Library by ID3 tags (artist + title)
+        ──►  Preview every action — nothing happens yet
+        ──►  Library files with no match → quarantine folder (not deleted)
+        ──►  Unmatched source files → moved into Library as-is
+        ──►  .m3u playlist written per source folder
 ```
 
-**Files in A are never touched.** Only B files get renamed before moving.
+**Library files are never touched.** Source files move into the Library with their original filenames intact.
 
 ### Matching Logic
 
-Files are matched by **ID3 tags** (artist + title via `mutagen`), not by filename. This means near-duplicates with different filename conventions still match correctly. If a file has no tags, it falls back to normalised filename comparison.
+Files are matched by **ID3 tags** (artist + title via `mutagen`) — not by filename. This means tracks with inconsistent filenames still match correctly as long as they have tags. For files with no tags, it falls back to normalised filename comparison.
 
-### Naming Convention
+### Multiple Sources
 
-The app reads A's existing files and detects the naming convention automatically:
-
-```
-Artist1_Artist2 Title.ext
-```
-
-Multiple artists (comma-separated in tags) are joined with `_`. B files are renamed to this convention before moving — so your library stays consistent without you having to think about it.
+You can add multiple source folders in one run. A file present in more than one source is only moved once. A Library file is kept (not quarantined) if it matches anything across any source.
 
 ### Quarantine, Not Delete
 
-Files in A that don't have a match in B are moved to `../RekordboxBounce/` — a sibling folder outside Rekordbox's watch path. Nothing is deleted. Review and clean up manually when you're confident.
+Library files with no match in any source are moved to `../RekordboxBounce/` — a sibling folder outside Rekordbox's watch path. Nothing is permanently deleted. Review and clean up manually when you're confident.
+
+### Undo
+
+The done screen includes a full undo: quarantined files are restored to the Library, moved files are returned to their source folders, and playlists are deleted.
 
 ---
 
 ## Features
 
 - **Tag-based matching** — ID3/FLAC/MP4 tags via mutagen, filename fallback for untagged files
+- **Multi-source support** — merge from multiple download folders in one run
 - **Full preview** — see exactly what will happen before anything executes
 - **Per-file keep toggles** — override any quarantine decision in the preview step
-- **Deduplication** — files present across multiple source folders are handled without conflicts
+- **Deduplication** — files present across multiple source folders are only moved once
 - **Native folder picker** — system file dialog, no path typing required
-- **Undo** — quarantined files can be restored from the done screen
+- **Playlist generation** — `.m3u` per source folder for easy Rekordbox import
+- **Undo** — full rollback from the done screen
 - **Cross-platform** — all file operations via `pathlib`, tested on Mac and Windows
 
 ---
@@ -79,18 +80,18 @@ Files in A that don't have a match in B are moved to `../RekordboxBounce/` — a
 
 ```
 ├── backend/
-│   ├── main.py          # FastAPI app — /api/preview, /api/execute, /api/pick-folder
-│   ├── scanner.py       # scan_folder(), read_tags(), build_filename(), normalize_name()
-│   ├── comparator.py    # compare_folders() — tag-based matching with filename fallback
-│   └── operations.py    # execute_sync() — quarantine + move with rename
+│   ├── main.py          # FastAPI app — /api/preview, /api/execute, /api/undo, /api/pick-folder
+│   ├── scanner.py       # scan_folder(), read_tags(), normalize_name()
+│   ├── comparator.py    # compare_folders_multi() — tag-based matching, multi-source
+│   └── operations.py    # execute_sync(), undo_sync(), playlist writing
 ├── frontend/
 │   └── src/
-│       ├── App.jsx                  # Wizard state machine: setup → preview → execute → done
+│       ├── App.jsx                  # Wizard: Folders → Preview → Confirm → Done
 │       └── components/
-│           ├── FolderSetup.jsx      # Folder selection
+│           ├── FolderSetup.jsx      # Library + Source folder selection
 │           ├── PreviewStep.jsx      # Preview with per-file keep toggles
 │           ├── ExecuteStep.jsx      # Confirmation gate
-│           └── Done.jsx             # Results, undo, playlist paths
+│           └── Done.jsx             # Results, playlist paths, undo
 ├── tests/
 │   ├── test_comparator.py
 │   └── test_operations.py
@@ -140,22 +141,24 @@ Then open **http://localhost:5173** in your browser.
 
 ## Usage
 
-1. **Select Folders** — Browse to your Rekordbox library folder (A) and your new downloads folder (B)
-2. **Preview** — review every planned action. Toggle "keep" on any file you want to leave in A
-3. **Confirm** — tick the checkbox and execute
-4. **Done** — quarantined files are at `../RekordboxBounce/` relative to A. Undo is available.
+1. **Select Folders** — choose your Library (existing Rekordbox folder) and one or more Source folders (new downloads)
+2. **Preview** — review every planned action. Toggle "keep" on any Library file you don't want quarantined
+3. **Confirm** — tick the checkbox and run
+4. **Done** — quarantined files are at `../RekordboxBounce/`. Playlists are written to your Library. Undo is available.
 
 ---
 
 ## Key Design Decisions
 
-**Files in A are immutable.** This is not a configuration option. Any rename or overwrite of an existing library file destroys Rekordbox cue points permanently. The constraint is enforced throughout the codebase.
+**Library files are immutable.** This is not a configuration option. Any rename or overwrite of an existing library file destroys Rekordbox cue points. The constraint is enforced throughout — only source files are ever moved.
 
 **Quarantine over delete.** Removals are always reversible. Files go to a sibling folder Rekordbox can't see, not the trash.
 
-**Tag matching over filename matching.** Download tools produce inconsistent filenames. Tags are more reliable. Mutagen supports ID3, FLAC, MP4, and AAC out of the box.
+**Tag matching over filename matching.** Source files come from download tools with inconsistent naming. Matching on artist+title tags is far more reliable. Filename comparison is only a fallback for untagged files.
 
-**Subprocess-isolated folder picker.** On macOS, tkinter must run on the main thread, which conflicts with FastAPI's async model. The picker runs in a subprocess and returns the selected path via stdout.
+**Subprocess-isolated folder picker.** On macOS, tkinter must run on the main thread, which conflicts with FastAPI's async model. The picker runs in a subprocess and returns the path via stdout.
+
+**Files move as-is.** Source files are not renamed before moving. The Library's naming convention is preserved as-is; source files land with whatever filename they already have.
 
 ---
 
