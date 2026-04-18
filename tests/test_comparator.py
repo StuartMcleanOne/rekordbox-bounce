@@ -33,7 +33,7 @@ def test_compare_folders_returns_expected_keys(tmp_path):
     with patch("backend.comparator.read_tags", return_value=None):
         result = compare_folders(str(a), str(b))
 
-    assert set(result.keys()) == {"delete_from_a", "keep_in_a", "move_to_a", "counts"}
+    assert set(result.keys()) == {"delete_from_a", "keep_in_a", "move_to_a", "duplicate_b_files", "counts"}
     assert "Artist Track.mp3" in result["keep_in_a"]
 
 
@@ -80,3 +80,39 @@ def test_compare_folders_multi_response_keys(tmp_path):
     assert set(result.keys()) == {
         "global_delete_from_a", "global_keep_in_a", "per_folder", "counts"
     }
+
+
+def test_compare_folders_duplicate_b_files(tmp_path):
+    """Files in B that match A should appear in duplicate_b_files."""
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+    _touch(a, "shared.mp3")
+    _touch(b, "shared.mp3")
+    _touch(b, "new.mp3")
+
+    with patch("backend.comparator.read_tags", return_value=None):
+        result = compare_folders(str(a), str(b))
+
+    assert "shared.mp3" in result["duplicate_b_files"]
+    assert "new.mp3" not in result["duplicate_b_files"]
+    assert "new.mp3" in result["move_to_a"]
+
+
+def test_compare_folders_multi_per_folder_has_duplicate_files(tmp_path):
+    """Each per_folder entry should include duplicate_files list."""
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+    _touch(a, "shared.mp3")
+    _touch(b, "shared.mp3")
+    _touch(b, "new.mp3")
+
+    with patch("backend.comparator.read_tags", return_value=None):
+        result = compare_folders_multi(str(a), [str(b)])
+
+    pf = result["per_folder"][0]
+    assert "duplicate_files" in pf
+    assert "shared.mp3" in pf["duplicate_files"]
+    assert "new.mp3" not in pf["duplicate_files"]
+    assert pf["counts"]["duplicates"] == 1

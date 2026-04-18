@@ -53,11 +53,13 @@ def compare_folders(folder_a: str, folder_b: str) -> dict:
     delete_from_a = sorted(n for n in files_a if n not in matched_a)
     keep_in_a = sorted(matched_a)
     new_b_files = sorted(n for n in files_b if n not in matched_b)
+    duplicate_b_files = sorted(matched_b)
 
     return {
         "delete_from_a": delete_from_a,
         "keep_in_a": keep_in_a,
         "move_to_a": new_b_files,
+        "duplicate_b_files": duplicate_b_files,
         "counts": {
             "delete_from_a": len(delete_from_a),
             "keep_in_a": len(matched_a),
@@ -90,9 +92,11 @@ def compare_folders_multi(folder_a: str, folders_b: list[str]) -> dict:
             "folder_b": folder_b,
             "folder_b_name": Path(folder_b).name,
             "move_to_a": move_to_a,
+            "duplicate_files": result["duplicate_b_files"],
             "counts": {
                 "total_b": result["counts"]["total_b"],
                 "move_to_a": len(move_to_a),
+                "duplicates": len(result["duplicate_b_files"]),
             },
         })
 
