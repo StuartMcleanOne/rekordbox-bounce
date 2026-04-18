@@ -1,7 +1,12 @@
 import shutil
+import json
 from pathlib import Path
+from datetime import datetime, timezone
 from backend.scanner import scan_folder
 from backend.comparator import compare_folders_multi as _compare_multi
+
+
+_LOG_PATH = Path(__file__).parent.parent / "bounce_log.json"
 
 
 def _write_playlist(folder_a: Path, folder_b_name: str, moved_files: list[str]) -> Path:
@@ -17,6 +22,29 @@ def _write_playlist(folder_a: Path, folder_b_name: str, moved_files: list[str]) 
 def get_quarantine_dir(folder_a: str) -> Path:
     """Quarantine folder lives in the parent of A, outside Rekordbox's watch."""
     return Path(folder_a).parent / "RekordboxBounce"
+
+
+def append_log_entry(entry: dict, log_path: Path = None) -> None:
+    path = log_path or _LOG_PATH
+    entries = []
+    if path.exists():
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            entries = []
+    entries.append(entry)
+    path.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def read_log_entries(limit: int = 5, log_path: Path = None) -> list:
+    path = log_path or _LOG_PATH
+    if not path.exists():
+        return []
+    try:
+        entries = json.loads(path.read_text(encoding="utf-8"))
+        return list(reversed(entries))[:limit]
+    except Exception:
+        return []
 
 
 def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) -> dict:

@@ -288,3 +288,41 @@ def test_sort_skips_collision_with_error(tmp_path):
 
     assert result["per_folder"][0]["errors"][0]["file"] == "track.mp3"
     assert result["summary"]["error_count"] == 1
+
+
+from backend.operations import append_log_entry, read_log_entries
+import json
+
+
+def test_append_log_entry_creates_file(tmp_path):
+    log_path = tmp_path / "test_log.json"
+    entry = {"timestamp": "2026-04-18T12:00:00", "mode": "merge", "counts": {}}
+    append_log_entry(entry, log_path=log_path)
+    assert log_path.exists()
+    data = json.loads(log_path.read_text())
+    assert len(data) == 1
+    assert data[0]["mode"] == "merge"
+
+
+def test_append_log_entry_appends(tmp_path):
+    log_path = tmp_path / "test_log.json"
+    append_log_entry({"mode": "merge"}, log_path=log_path)
+    append_log_entry({"mode": "bounce"}, log_path=log_path)
+    data = json.loads(log_path.read_text())
+    assert len(data) == 2
+
+
+def test_read_log_entries_returns_reversed(tmp_path):
+    log_path = tmp_path / "test_log.json"
+    for i in range(7):
+        append_log_entry({"index": i}, log_path=log_path)
+    entries = read_log_entries(log_path=log_path, limit=5)
+    assert len(entries) == 5
+    assert entries[0]["index"] == 6  # newest first
+    assert entries[4]["index"] == 2
+
+
+def test_read_log_entries_missing_file(tmp_path):
+    log_path = tmp_path / "nonexistent.json"
+    entries = read_log_entries(log_path=log_path)
+    assert entries == []
