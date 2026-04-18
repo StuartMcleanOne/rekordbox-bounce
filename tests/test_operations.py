@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from backend.operations import execute_sync
+from backend.operations import execute_sync, sort_sync
 
 
 def _touch(folder: Path, name: str) -> Path:
@@ -164,3 +164,127 @@ def test_undo_deletes_playlists(tmp_path):
     )
 
     assert not playlist.exists()
+
+
+def _mock_compare_for_sort(a, b_list, per_folder=None):
+    per_folder = per_folder or []
+    return {
+        "global_delete_from_a": [],
+        "global_keep_in_a": [],
+        "per_folder": per_folder,
+        "counts": {"total_a": 0, "to_quarantine": 0, "keep_in_a": 0, "total_adding": 0},
+    }
+
+
+def test_sort_creates_sibling_folders(tmp_path):
+    a = tmp_path / "Library"
+    b = tmp_path / "techno26"
+    a.mkdir(); b.mkdir()
+    _touch(b, "new_track.mp3")
+    _touch(b, "old_track.mp3")
+
+    compare_result = _mock_compare_for_sort(str(a), [str(b)], per_folder=[{
+        "folder_b": str(b),
+        "folder_b_name": "techno26",
+        "move_to_a": ["new_track.mp3"],
+        "duplicate_files": ["old_track.mp3"],
+        "counts": {"total_b": 2, "move_to_a": 1, "duplicates": 1},
+    }])
+
+    with patch("backend.operations._compare_multi", return_value=compare_result):
+        result = sort_sync(str(a), [str(b)])
+
+    assert (tmp_path / "techno26_New").is_dir()
+    assert (tmp_path / "techno26_Duplicate").is_dir()
+
+
+def test_sort_moves_new_files_to_new_folder(tmp_path):
+    a = tmp_path / "Library"
+    b = tmp_path / "techno26"
+    a.mkdir(); b.mkdir()
+    _touch(b, "new_track.mp3")
+
+    compare_result = _mock_compare_for_sort(str(a), [str(b)], per_folder=[{
+        "folder_b": str(b),
+        "folder_b_name": "techno26",
+        "move_to_a": ["new_track.mp3"],
+        "duplicate_files": [],
+        "counts": {"total_b": 1, "move_to_a": 1, "duplicates": 0},
+    }])
+
+    with patch("backend.operations._compare_multi", return_value=compare_result):
+        result = sort_sync(str(a), [str(b)])
+
+    assert (tmp_path / "techno26_New" / "new_track.mp3").exists()
+    assert not (b / "new_track.mp3").exists()
+    pf = result["per_folder"][0]
+    assert pf["moved_new"] == ["new_track.mp3"]
+    assert pf["new_folder"] == str(tmp_path / "techno26_New")
+
+
+def test_sort_moves_duplicates_to_duplicate_folder(tmp_path):
+    a = tmp_path / "Library"
+    b = tmp_path / "techno26"
+    a.mkdir(); b.mkdir()
+    _touch(b, "old_track.mp3")
+
+    compare_result = _mock_compare_for_sort(str(a), [str(b)], per_folder=[{
+        "folder_b": str(b),
+        "folder_b_name": "techno26",
+        "move_to_a": [],
+        "duplicate_files": ["old_track.mp3"],
+        "counts": {"total_b": 1, "move_to_a": 0, "duplicates": 1},
+    }])
+
+    with patch("backend.operations._compare_multi", return_value=compare_result):
+        result = sort_sync(str(a), [str(b)])
+
+    assert (tmp_path / "techno26_Duplicate" / "old_track.mp3").exists()
+    assert not (b / "old_track.mp3").exists()
+    pf = result["per_folder"][0]
+    assert pf["moved_duplicate"] == ["old_track.mp3"]
+    assert pf["duplicate_folder"] == str(tmp_path / "techno26_Duplicate")
+
+
+def test_sort_does_not_touch_library(tmp_path):
+    a = tmp_path / "Library"
+    b = tmp_path / "techno26"
+    a.mkdir(); b.mkdir()
+    library_file = _touch(a, "library_track.mp3")
+    _touch(b, "new_track.mp3")
+
+    compare_result = _mock_compare_for_sort(str(a), [str(b)], per_folder=[{
+        "folder_b": str(b),
+        "folder_b_name": "techno26",
+        "move_to_a": ["new_track.mp3"],
+        "duplicate_files": [],
+        "counts": {"total_b": 1, "move_to_a": 1, "duplicates": 0},
+    }])
+
+    with patch("backend.operations._compare_multi", return_value=compare_result):
+        sort_sync(str(a), [str(b)])
+
+    assert library_file.exists()
+
+
+def test_sort_skips_collision_with_error(tmp_path):
+    a = tmp_path / "Library"
+    b = tmp_path / "techno26"
+    new_folder = tmp_path / "techno26_New"
+    a.mkdir(); b.mkdir(); new_folder.mkdir()
+    _touch(b, "track.mp3")
+    _touch(new_folder, "track.mp3")  # collision
+
+    compare_result = _mock_compare_for_sort(str(a), [str(b)], per_folder=[{
+        "folder_b": str(b),
+        "folder_b_name": "techno26",
+        "move_to_a": ["track.mp3"],
+        "duplicate_files": [],
+        "counts": {"total_b": 1, "move_to_a": 1, "duplicates": 0},
+    }])
+
+    with patch("backend.operations._compare_multi", return_value=compare_result):
+        result = sort_sync(str(a), [str(b)])
+
+    assert result["per_folder"][0]["errors"][0]["file"] == "track.mp3"
+    assert result["summary"]["error_count"] == 1

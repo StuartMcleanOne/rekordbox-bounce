@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from backend.scanner import scan_folder
+from backend.comparator import compare_folders_multi as _compare_multi
 
 
 def _write_playlist(folder_a: Path, folder_b_name: str, moved_files: list[str]) -> Path:
@@ -24,12 +25,10 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) 
     1. Move files from A (not in any B) to quarantine — unless in files_to_keep
     2. For each B folder: move new files into A keeping their original filenames
     """
-    from backend.comparator import compare_folders_multi  # lazy import — added in Task 2
-
     files_a = scan_folder(folder_a)
     quarantine = get_quarantine_dir(folder_a)
 
-    preview = compare_folders_multi(folder_a, folders_b)
+    preview = _compare_multi(folder_a, folders_b)
     to_quarantine = [f for f in preview["global_delete_from_a"] if f not in files_to_keep]
 
     quarantined = []
@@ -164,4 +163,79 @@ def undo_sync(
         "restored_to_b_count": restored_to_b_count,
         "error_count": len(errors),
         "errors": errors,
+    }
+
+
+def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
+    """
+    For each source folder, move files into sibling folders:
+      [SourceName]_New/       — not in Library
+      [SourceName]_Duplicate/ — already in Library
+    Never touches folder_a.
+    """
+    preview = _compare_multi(folder_a, folders_b)
+    per_folder_results = []
+
+    for pf in preview["per_folder"]:
+        folder_b = pf["folder_b"]
+        folder_b_name = pf["folder_b_name"]
+        parent = Path(folder_b).parent
+        files_b = scan_folder(folder_b)
+
+        new_folder = parent / f"{folder_b_name}_New"
+        duplicate_folder = parent / f"{folder_b_name}_Duplicate"
+        new_folder.mkdir(exist_ok=True)
+        duplicate_folder.mkdir(exist_ok=True)
+
+        moved_new, moved_duplicate, errors = [], [], []
+
+        for filename in pf["move_to_a"]:
+            src = files_b.get(filename)
+            if src is None:
+                continue
+            dest = new_folder / filename
+            if dest.exists():
+                errors.append({"file": filename, "error": f"'{filename}' already exists in New folder, skipped"})
+                continue
+            try:
+                shutil.move(str(src), str(dest))
+                moved_new.append(filename)
+            except Exception as e:
+                errors.append({"file": filename, "error": str(e)})
+
+        for filename in pf["duplicate_files"]:
+            src = files_b.get(filename)
+            if src is None:
+                continue
+            dest = duplicate_folder / filename
+            if dest.exists():
+                errors.append({"file": filename, "error": f"'{filename}' already exists in Duplicate folder, skipped"})
+                continue
+            try:
+                shutil.move(str(src), str(dest))
+                moved_duplicate.append(filename)
+            except Exception as e:
+                errors.append({"file": filename, "error": str(e)})
+
+        per_folder_results.append({
+            "folder_b": folder_b,
+            "folder_b_name": folder_b_name,
+            "new_folder": str(new_folder),
+            "duplicate_folder": str(duplicate_folder),
+            "moved_new": moved_new,
+            "moved_duplicate": moved_duplicate,
+            "errors": errors,
+        })
+
+    total_new = sum(len(pf["moved_new"]) for pf in per_folder_results)
+    total_duplicate = sum(len(pf["moved_duplicate"]) for pf in per_folder_results)
+    all_errors = [e for pf in per_folder_results for e in pf["errors"]]
+
+    return {
+        "per_folder": per_folder_results,
+        "summary": {
+            "total_new": total_new,
+            "total_duplicate": total_duplicate,
+            "error_count": len(all_errors),
+        },
     }
