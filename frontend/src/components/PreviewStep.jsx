@@ -1,11 +1,35 @@
 import { useState } from 'react'
 
-export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBack, onConfirm }) {
+export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBack, onConfirm, mode }) {
   const { global_delete_from_a, global_keep_in_a, per_folder, quarantine_path, counts } = preview
   const quarantineCount = counts.to_quarantine - filesToKeep.length
 
   const toggleKeep = (f) =>
     setFilesToKeep(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])
+
+  const totalNew = per_folder.reduce((s, pf) => s + pf.move_to_a.length, 0)
+  const totalDuplicate = per_folder.reduce((s, pf) => s + (pf.duplicate_files || []).length, 0)
+  const totalSourceFiles = per_folder.reduce((s, pf) => s + pf.counts.total_b, 0)
+
+  const summaryStats = mode === 'sort'
+    ? [
+        { value: totalSourceFiles, label: 'Source files', color: 'var(--text)' },
+        { value: totalNew, label: 'Going to New/', color: 'var(--accent)' },
+        { value: totalDuplicate, label: 'Going to Duplicate/', color: 'var(--text-muted)' },
+      ]
+    : mode === 'merge'
+    ? [
+        { value: counts.total_a, label: 'Files in Library', color: 'var(--text)' },
+        { value: totalSourceFiles, label: 'Files in Source', color: 'var(--text)' },
+        { value: counts.keep_in_a, label: 'Already matched', color: 'var(--success)' },
+        { value: counts.total_adding, label: 'Adding to Library', color: 'var(--accent)' },
+      ]
+    : [
+        { value: counts.total_a, label: 'Files in Library', color: 'var(--text)' },
+        { value: totalSourceFiles, label: 'Files in Source', color: 'var(--text)' },
+        { value: quarantineCount, label: 'To quarantine', color: 'var(--danger)' },
+        { value: counts.total_adding, label: 'Adding to Library', color: 'var(--accent)' },
+      ]
 
   return (
     <div>
@@ -20,17 +44,12 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
 
       {/* Summary bar */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        display: 'grid', gridTemplateColumns: `repeat(${summaryStats.length}, 1fr)`,
         gap: '1px', background: 'var(--border)',
         borderRadius: '10px', overflow: 'hidden',
         marginBottom: '20px', border: '1px solid var(--border)',
       }}>
-        {[
-          { value: counts.total_a, label: 'Files in A', color: 'var(--text)' },
-          { value: per_folder.reduce((s, pf) => s + pf.counts.total_b, 0), label: 'Files in B', color: 'var(--text)' },
-          { value: quarantineCount, label: 'To quarantine', color: 'var(--danger)' },
-          { value: counts.total_adding, label: 'Adding to A', color: 'var(--accent)' },
-        ].map(s => (
+        {summaryStats.map(s => (
           <div key={s.label} style={{ padding: '18px 16px', background: 'var(--surface)', textAlign: 'center' }}>
             <div style={{ fontSize: '26px', fontFamily: 'Syne', fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px', fontFamily: 'IBM Plex Mono' }}>{s.label}</div>
@@ -39,105 +58,129 @@ export default function PreviewStep({ preview, filesToKeep, setFilesToKeep, onBa
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Quarantine */}
-        <Section
-          title={`${quarantineCount} going to quarantine`}
-          meta={quarantine_path}
-          color="var(--danger)"
-          dimColor="var(--danger-dim)"
-          borderColor="rgba(244,63,94,0.2)"
-          defaultOpen
-          badge={`${filesToKeep.length} kept`}
-          badgeVisible={filesToKeep.length > 0}
-        >
-          {global_delete_from_a.length === 0 ? (
-            <EmptyState text="Nothing to quarantine" />
-          ) : (
-            <ul style={{ padding: '0 0 4px' }}>
-              {global_delete_from_a.map(f => {
-                const kept = filesToKeep.includes(f)
-                return (
-                  <li
-                    key={f}
-                    onClick={() => toggleKeep(f)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '10px 20px', cursor: 'pointer',
-                      borderTop: '1px solid var(--border)',
-                      background: kept ? 'rgba(34,211,238,0.04)' : 'transparent',
-                      transition: 'background 0.1s',
-                    }}
-                  >
-                    <Checkbox checked={kept} color="var(--accent)" />
-                    <span style={{
-                      fontFamily: 'IBM Plex Mono', fontSize: '12px',
-                      color: kept ? 'var(--accent)' : 'var(--text-muted)',
-                      flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{f}</span>
-                    {kept && (
-                      <span style={{
-                        fontSize: '10px', fontFamily: 'IBM Plex Mono',
-                        color: 'var(--accent)', padding: '2px 8px',
-                        background: 'var(--accent-dim)', borderRadius: '4px', whiteSpace: 'nowrap',
-                      }}>KEEPING</span>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </Section>
-
-        {/* Staying in A */}
-        <Section
-          title={`${counts.keep_in_a} staying in A`}
-          meta="Matched — cue points safe, not touched"
-          color="var(--success)"
-          dimColor="var(--success-dim)"
-          borderColor="rgba(16,185,129,0.2)"
-          defaultOpen={false}
-        >
-          {global_keep_in_a.length === 0 ? (
-            <EmptyState text="No matched files" />
-          ) : (
-            <ul style={{ padding: '0 0 4px' }}>
-              {global_keep_in_a.map(f => (
-                <li key={f} style={{
-                  padding: '9px 20px', borderTop: '1px solid var(--border)',
-                  fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{f}</li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        {/* Per-folder incoming */}
-        {per_folder.map((pf, i) => (
-          <Section
-            key={i}
-            title={`${pf.counts.move_to_a} new files from ${pf.folder_b_name}`}
-            meta="Will be moved into A with original filename"
-            color="var(--accent)"
-            dimColor="var(--accent-dim)"
-            borderColor="rgba(34,211,238,0.2)"
-            defaultOpen
-          >
-            {pf.move_to_a.length === 0 ? (
-              <EmptyState text="No new files to add" />
-            ) : (
-              <ul style={{ padding: '0 0 4px' }}>
-                {pf.move_to_a.map(f => (
-                  <li key={f} style={{
-                    padding: '10px 20px', borderTop: '1px solid var(--border)',
-                    fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{f}</li>
-                ))}
-              </ul>
-            )}
-          </Section>
+        {mode === 'sort' && per_folder.map((pf, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Section
+              title={`${pf.move_to_a.length} going to ${pf.folder_b_name}_New/`}
+              meta="Not in your Library"
+              color="var(--accent)" dimColor="var(--accent-dim)" borderColor="rgba(34,211,238,0.2)"
+              defaultOpen
+            >
+              {pf.move_to_a.length === 0 ? <EmptyState text="No new files" /> : (
+                <ul style={{ padding: '0 0 4px' }}>
+                  {pf.move_to_a.map(f => (
+                    <li key={f} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+            <Section
+              title={`${(pf.duplicate_files || []).length} going to ${pf.folder_b_name}_Duplicate/`}
+              meta="Already in your Library"
+              color="var(--text-muted)" dimColor="var(--surface)" borderColor="var(--border)"
+              defaultOpen={false}
+            >
+              {(pf.duplicate_files || []).length === 0 ? <EmptyState text="No duplicates found" /> : (
+                <ul style={{ padding: '0 0 4px' }}>
+                  {(pf.duplicate_files || []).map(f => (
+                    <li key={f} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          </div>
         ))}
+
+        {mode === 'merge' && (
+          <>
+            <Section
+              title={`${counts.keep_in_a} already in Library`}
+              meta="Matched — will not be moved or changed"
+              color="var(--success)" dimColor="var(--success-dim)" borderColor="rgba(16,185,129,0.2)"
+              defaultOpen={false}
+            >
+              {global_keep_in_a.length === 0 ? <EmptyState text="No matched files" /> : (
+                <ul style={{ padding: '0 0 4px' }}>
+                  {global_keep_in_a.map(f => (
+                    <li key={f} style={{ padding: '9px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+            {per_folder.map((pf, i) => (
+              <Section key={i}
+                title={`${pf.move_to_a.length} new files from ${pf.folder_b_name}`}
+                meta="Will be moved into Library"
+                color="var(--accent)" dimColor="var(--accent-dim)" borderColor="rgba(34,211,238,0.2)"
+                defaultOpen
+              >
+                {pf.move_to_a.length === 0 ? <EmptyState text="No new files to add" /> : (
+                  <ul style={{ padding: '0 0 4px' }}>
+                    {pf.move_to_a.map(f => (
+                      <li key={f} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+              </Section>
+            ))}
+          </>
+        )}
+
+        {mode === 'bounce' && (
+          <>
+            <Section
+              title={`${quarantineCount} going to quarantine`}
+              meta={quarantine_path}
+              color="var(--danger)" dimColor="var(--danger-dim)" borderColor="rgba(244,63,94,0.2)"
+              defaultOpen badge={`${filesToKeep.length} kept`} badgeVisible={filesToKeep.length > 0}
+            >
+              {global_delete_from_a.length === 0 ? <EmptyState text="Nothing to quarantine" /> : (
+                <ul style={{ padding: '0 0 4px' }}>
+                  {global_delete_from_a.map(f => {
+                    const kept = filesToKeep.includes(f)
+                    return (
+                      <li key={f} onClick={() => toggleKeep(f)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', cursor: 'pointer', borderTop: '1px solid var(--border)', background: kept ? 'rgba(34,211,238,0.04)' : 'transparent', transition: 'background 0.1s' }}>
+                        <Checkbox checked={kept} color="var(--accent)" />
+                        <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '12px', color: kept ? 'var(--accent)' : 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</span>
+                        {kept && <span style={{ fontSize: '10px', fontFamily: 'IBM Plex Mono', color: 'var(--accent)', padding: '2px 8px', background: 'var(--accent-dim)', borderRadius: '4px', whiteSpace: 'nowrap' }}>KEEPING</span>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </Section>
+            <Section
+              title={`${counts.keep_in_a} staying in Library`}
+              meta="Matched — cue points safe, not touched"
+              color="var(--success)" dimColor="var(--success-dim)" borderColor="rgba(16,185,129,0.2)"
+              defaultOpen={false}
+            >
+              {global_keep_in_a.length === 0 ? <EmptyState text="No matched files" /> : (
+                <ul style={{ padding: '0 0 4px' }}>
+                  {global_keep_in_a.map(f => (
+                    <li key={f} style={{ padding: '9px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+            {per_folder.map((pf, i) => (
+              <Section key={i}
+                title={`${pf.move_to_a.length} new files from ${pf.folder_b_name}`}
+                meta="Will be moved into Library with original filename"
+                color="var(--accent)" dimColor="var(--accent-dim)" borderColor="rgba(34,211,238,0.2)"
+                defaultOpen
+              >
+                {pf.move_to_a.length === 0 ? <EmptyState text="No new files to add" /> : (
+                  <ul style={{ padding: '0 0 4px' }}>
+                    {pf.move_to_a.map(f => (
+                      <li key={f} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+              </Section>
+            ))}
+          </>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
