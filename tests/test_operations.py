@@ -332,3 +332,30 @@ def test_read_log_entries_missing_file(tmp_path):
     log_path = tmp_path / "nonexistent.json"
     entries = read_log_entries(log_path=log_path)
     assert entries == []
+
+
+def test_execute_merge_does_not_quarantine(tmp_path):
+    """In merge mode, Library files not in any Source must stay untouched."""
+    a = tmp_path / "A"
+    b = tmp_path / "B"
+    a.mkdir(); b.mkdir()
+    library_file = _touch(a, "library_only.mp3")  # in Library, not in Source
+
+    compare_result = _mock_compare(
+        str(a), [str(b)],
+        delete=["library_only.mp3"],  # comparator says quarantine this
+        per_folder=[{
+            "folder_b": str(b),
+            "folder_b_name": "B",
+            "move_to_a": [],
+            "duplicate_files": [],
+            "counts": {"total_b": 0, "move_to_a": 0, "duplicates": 0},
+        }]
+    )
+
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result), \
+         patch("backend.operations.append_log_entry"):
+        result = execute_sync(str(a), [str(b)], files_to_keep=[], mode="merge")
+
+    assert library_file.exists(), "Library file must not be moved in MERGE mode"
+    assert result["summary"]["quarantined_count"] == 0

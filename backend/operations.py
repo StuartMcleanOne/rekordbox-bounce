@@ -62,19 +62,20 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str], 
     quarantined = []
     errors = []
 
-    # Step 1: quarantine unwanted A files
-    if to_quarantine:
-        quarantine.mkdir(parents=True, exist_ok=True)
-    for filename in to_quarantine:
-        src = files_a[filename]
-        dest = quarantine / filename
-        if dest.exists():
-            dest = quarantine / f"_{filename}"
-        try:
-            shutil.move(str(src), str(dest))
-            quarantined.append(filename)
-        except Exception as e:
-            errors.append({"file": filename, "error": str(e)})
+    # Step 1: quarantine unwanted A files (BOUNCE only)
+    if mode == "bounce":
+        if to_quarantine:
+            quarantine.mkdir(parents=True, exist_ok=True)
+        for filename in to_quarantine:
+            src = files_a[filename]
+            dest = quarantine / filename
+            if dest.exists():
+                dest = quarantine / f"_{filename}"
+            try:
+                shutil.move(str(src), str(dest))
+                quarantined.append(filename)
+            except Exception as e:
+                errors.append({"file": filename, "error": str(e)})
 
     # Step 2: move new files from each B folder into A
     dest_dir = Path(folder_a)
