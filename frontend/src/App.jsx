@@ -118,6 +118,7 @@ export default function App() {
               foldersB={foldersB}
               setFoldersB={setFoldersB}
               onNext={(p) => { setPreview(p); setFilesToKeep([]); setStep('preview') }}
+              onBack={() => setStep('mode')}
             />
           )}
           {step === 'preview' && (

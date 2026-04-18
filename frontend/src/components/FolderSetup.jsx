@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB, onNext }) {
+export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB, onNext, onBack }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -96,11 +96,23 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
         </div>
       )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !canSubmit}
+      <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '16px 20px', borderRadius: '10px',
+            background: 'transparent', color: 'var(--text-muted)',
+            border: '1px solid var(--border-bright)', cursor: 'pointer',
+            fontSize: '14px', fontFamily: 'IBM Plex Sans',
+          }}
+        >
+          ← Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !canSubmit}
         style={{
-          marginTop: '24px', width: '100%',
+          flex: 1,
           padding: '16px', borderRadius: '10px',
           background: loading || !canSubmit ? 'var(--surface-2)' : 'var(--accent)',
           color: loading || !canSubmit ? 'var(--text-dim)' : '#000',
@@ -111,6 +123,7 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
       >
         {loading ? 'Scanning...' : 'Scan & Preview →'}
       </button>
+      </div>
     </div>
   )
 }
