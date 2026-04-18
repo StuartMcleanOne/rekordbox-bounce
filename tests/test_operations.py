@@ -15,6 +15,9 @@ def _mock_compare(a, b_list, delete=None, keep=None, per_folder=None):
     delete = delete or []
     keep = keep or []
     per_folder = per_folder or []
+    for pf in per_folder:
+        pf.setdefault("duplicate_files", [])
+        pf["counts"].setdefault("duplicates", 0)
     return {
         "global_delete_from_a": delete,
         "global_keep_in_a": keep,
@@ -44,7 +47,8 @@ def test_execute_keeps_original_b_filename(tmp_path):
         }]
     )
 
-    with patch("backend.comparator.compare_folders_multi", return_value=compare_result):
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result), \
+         patch("backend.operations.append_log_entry"):
         result = execute_sync(str(a), [str(b)], files_to_keep=[])
 
     assert (a / "DJ Mix Vol1.mp3").exists()
@@ -67,7 +71,8 @@ def test_execute_creates_m3u_playlist(tmp_path):
         }]
     )
 
-    with patch("backend.comparator.compare_folders_multi", return_value=compare_result):
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result), \
+         patch("backend.operations.append_log_entry"):
         result = execute_sync(str(a), [str(b)], files_to_keep=[])
 
     playlist_path = Path(result["per_folder"][0]["playlist_path"])
@@ -94,7 +99,8 @@ def test_execute_no_playlist_when_nothing_moved(tmp_path):
         }]
     )
 
-    with patch("backend.comparator.compare_folders_multi", return_value=compare_result):
+    with patch("backend.comparator.compare_folders_multi", return_value=compare_result), \
+         patch("backend.operations.append_log_entry"):
         result = execute_sync(str(a), [str(b)], files_to_keep=[])
 
     assert result["per_folder"][0]["playlist_path"] is None

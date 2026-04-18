@@ -47,7 +47,7 @@ def read_log_entries(limit: int = 5, log_path: Path = None) -> list:
         return []
 
 
-def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) -> dict:
+def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str], mode: str = "bounce") -> dict:
     """
     Execute the sync:
     1. Move files from A (not in any B) to quarantine — unless in files_to_keep
@@ -112,6 +112,20 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str]) 
         errors.extend(folder_errors)
 
     total_moved = sum(len(pf["moved"]) for pf in per_folder_results)
+
+    append_log_entry({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "library_name": Path(folder_a).name,
+        "library_path": folder_a,
+        "sources": [Path(f).name for f in folders_b],
+        "counts": {
+            "moved": total_moved,
+            "quarantined": len(quarantined),
+            "kept": len(files_to_keep),
+            "errors": len(errors),
+        },
+    })
 
     return {
         "quarantined": quarantined,
@@ -258,6 +272,20 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
     total_new = sum(len(pf["moved_new"]) for pf in per_folder_results)
     total_duplicate = sum(len(pf["moved_duplicate"]) for pf in per_folder_results)
     all_errors = [e for pf in per_folder_results for e in pf["errors"]]
+
+    append_log_entry({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "sort",
+        "library_name": Path(folder_a).name,
+        "library_path": folder_a,
+        "sources": [Path(f).name for f in folders_b],
+        "counts": {
+            "moved": total_new + total_duplicate,
+            "new": total_new,
+            "duplicates": total_duplicate,
+            "errors": len(all_errors),
+        },
+    })
 
     return {
         "per_folder": per_folder_results,
