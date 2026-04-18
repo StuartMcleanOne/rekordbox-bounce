@@ -1,19 +1,28 @@
 import { useState } from 'react'
 import './index.css'
+import ModeStep from './components/ModeStep'
 import FolderSetup from './components/FolderSetup'
 import PreviewStep from './components/PreviewStep'
 import ExecuteStep from './components/ExecuteStep'
 import Done from './components/Done'
 
 const STEPS = [
+  { key: 'mode', label: 'Mode' },
   { key: 'setup', label: 'Folders' },
   { key: 'preview', label: 'Preview' },
   { key: 'execute', label: 'Confirm' },
   { key: 'done', label: 'Done' },
 ]
 
+const MODE_COLORS = {
+  sort: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'rgba(34,211,238,0.25)' },
+  merge: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'rgba(34,211,238,0.25)' },
+  bounce: { color: 'var(--danger)', dim: 'var(--danger-dim)', border: 'rgba(244,63,94,0.25)' },
+}
+
 export default function App() {
-  const [step, setStep] = useState('setup')
+  const [step, setStep] = useState('mode')
+  const [mode, setMode] = useState('merge')
   const [folderA, setFolderA] = useState('')
   const [foldersB, setFoldersB] = useState([''])
   const [preview, setPreview] = useState(null)
@@ -21,6 +30,17 @@ export default function App() {
   const [result, setResult] = useState(null)
 
   const currentIndex = STEPS.findIndex(s => s.key === step)
+  const mc = MODE_COLORS[mode]
+
+  const handleReset = () => {
+    setStep('mode')
+    setMode('merge')
+    setFolderA('')
+    setFoldersB([''])
+    setPreview(null)
+    setFilesToKeep([])
+    setResult(null)
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
@@ -37,6 +57,15 @@ export default function App() {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.05em' }}>
             v0.2
           </span>
+          {step !== 'mode' && (
+            <span style={{
+              fontSize: '10px', fontFamily: 'IBM Plex Mono', fontWeight: 700,
+              letterSpacing: '0.1em', padding: '2px 8px', borderRadius: '4px',
+              color: mc.color, background: mc.dim, border: `1px solid ${mc.border}`,
+            }}>
+              {mode.toUpperCase()}
+            </span>
+          )}
         </div>
 
         {/* Step indicator */}
@@ -75,6 +104,13 @@ export default function App() {
       {/* Main */}
       <main style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '48px 24px' }}>
         <div style={{ width: '100%', maxWidth: '680px' }}>
+          {step === 'mode' && (
+            <ModeStep
+              mode={mode}
+              setMode={setMode}
+              onNext={() => setStep('setup')}
+            />
+          )}
           {step === 'setup' && (
             <FolderSetup
               folderA={folderA}
@@ -89,6 +125,7 @@ export default function App() {
               preview={preview}
               filesToKeep={filesToKeep}
               setFilesToKeep={setFilesToKeep}
+              mode={mode}
               onBack={() => setStep('setup')}
               onConfirm={() => setStep('execute')}
             />
@@ -98,6 +135,7 @@ export default function App() {
               folderA={folderA}
               foldersB={foldersB}
               filesToKeep={filesToKeep}
+              mode={mode}
               onResult={(r) => { setResult(r); setStep('done') }}
               onBack={() => setStep('preview')}
             />
@@ -106,14 +144,9 @@ export default function App() {
             <Done
               result={result}
               folderA={folderA}
-              onReset={() => {
-                setStep('setup')
-                setFolderA('')
-                setFoldersB([''])
-                setPreview(null)
-                setFilesToKeep([])
-                setResult(null)
-              }}
+              mode={mode}
+              preview={preview}
+              onReset={handleReset}
             />
           )}
         </div>
