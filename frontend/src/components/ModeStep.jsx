@@ -2,26 +2,26 @@ const MODES = [
   {
     key: 'sort',
     label: 'SORT',
-    description: "Separates what's new from what's old. So you don't waste time re-analysing tracks you already have.",
+    description: "Separates what's new from what's old. So you don't waste time re-analysing tracks you already have. A playlist of new tracks is created for each source folder.",
     color: 'var(--accent)',
     dimColor: 'var(--accent-dim)',
-    borderColor: 'rgba(34,211,238,0.25)',
+    borderColor: 'var(--accent-glow)',
   },
   {
     key: 'merge',
     label: 'MERGE',
-    description: "Brings new and old together. Your existing Library is protected. New tracks are added. Nothing is removed.",
+    description: "Brings new and old together. Your existing Library is protected. New tracks are added. Nothing is removed. A playlist is automatically created for each source folder.",
     color: 'var(--accent)',
     dimColor: 'var(--accent-dim)',
-    borderColor: 'rgba(34,211,238,0.25)',
+    borderColor: 'var(--accent-glow)',
   },
   {
     key: 'bounce',
     label: 'BOUNCE',
-    description: "Spring clean. Replaces your old Library with your new one — without overwriting anything. New tracks come in, unmatched tracks go to quarantine.",
+    description: "Spring clean. Replaces your old Library with your new one — without overwriting anything. New tracks come in, unmatched tracks go to quarantine. A playlist is automatically created for each source folder.",
     color: 'var(--danger)',
     dimColor: 'var(--danger-dim)',
-    borderColor: 'rgba(244,63,94,0.25)',
+    borderColor: 'rgba(204,112,81,0.25)',
   },
 ]
 

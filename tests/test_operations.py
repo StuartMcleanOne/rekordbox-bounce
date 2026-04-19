@@ -78,7 +78,7 @@ def test_execute_creates_m3u_playlist(tmp_path):
     playlist_path = Path(result["per_folder"][0]["playlist_path"])
     assert playlist_path.exists()
     assert playlist_path.name == "B.m3u"
-    assert playlist_path.parent == a
+    assert playlist_path.parent == a / "_Playlists"
     content = playlist_path.read_text()
     assert "#EXTM3U" in content
     assert "New Track.mp3" in content

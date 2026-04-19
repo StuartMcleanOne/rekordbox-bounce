@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -115,6 +119,24 @@ def get_log():
     """Return last 5 session log entries in reverse chronological order."""
     try:
         return read_log_entries()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/open-path")
+def open_path(path: str):
+    """Open a file or folder in the native OS file manager / default app."""
+    p = Path(path)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Path not found")
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", str(p)])
+        elif sys.platform == "win32":
+            os.startfile(str(p))
+        else:
+            subprocess.Popen(["xdg-open", str(p)])
+        return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

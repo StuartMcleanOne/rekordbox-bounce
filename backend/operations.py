@@ -9,12 +9,14 @@ from backend.comparator import compare_folders_multi as _compare_multi
 _LOG_PATH = Path(__file__).parent.parent / "bounce_log.json"
 
 
-def _write_playlist(folder_a: Path, folder_b_name: str, moved_files: list[str]) -> Path:
-    """Write a .m3u playlist to folder_a listing the full paths of moved files."""
-    playlist_path = folder_a / f"{folder_b_name}.m3u"
+def _write_playlist(dest_dir: Path, folder_b_name: str, moved_files: list[str]) -> Path:
+    """Write a .m3u playlist into dest_dir/_Playlists/ listing full paths of moved files."""
+    playlists_dir = dest_dir / "_Playlists"
+    playlists_dir.mkdir(exist_ok=True)
+    playlist_path = playlists_dir / f"{folder_b_name}.m3u"
     lines = ["#EXTM3U"]
     for filename in moved_files:
-        lines.append(str(folder_a / filename))
+        lines.append(str(dest_dir / filename))
     playlist_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return playlist_path
 
@@ -113,6 +115,7 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str], 
         errors.extend(folder_errors)
 
     total_moved = sum(len(pf["moved"]) for pf in per_folder_results)
+    kept_in_library_count = len(files_a) - len(quarantined)
 
     append_log_entry({
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -136,6 +139,7 @@ def execute_sync(folder_a: str, folders_b: list[str], files_to_keep: list[str], 
             "quarantined_count": len(quarantined),
             "kept_count": len(files_to_keep),
             "total_moved_count": total_moved,
+            "kept_in_library_count": kept_in_library_count,
             "error_count": len(errors),
         },
     }
@@ -216,6 +220,7 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
       [SourceName]_Duplicate/ — already in Library
     Never touches folder_a.
     """
+    files_a = scan_folder(folder_a)
     preview = _compare_multi(folder_a, folders_b)
     per_folder_results = []
 
@@ -260,6 +265,14 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
             except Exception as e:
                 errors.append({"file": filename, "error": str(e)})
 
+        sort_playlist_path = None
+        if moved_new:
+            playlists_dir = Path(folder_b) / "_Playlists"
+            playlists_dir.mkdir(exist_ok=True)
+            sort_playlist_path = playlists_dir / f"{folder_b_name}_New.m3u"
+            lines = ["#EXTM3U"] + [str(new_folder / f) for f in moved_new]
+            sort_playlist_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
         per_folder_results.append({
             "folder_b": folder_b,
             "folder_b_name": folder_b_name,
@@ -267,6 +280,7 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
             "duplicate_folder": str(duplicate_folder),
             "moved_new": moved_new,
             "moved_duplicate": moved_duplicate,
+            "playlist_path": str(sort_playlist_path) if sort_playlist_path else None,
             "errors": errors,
         })
 
@@ -293,6 +307,7 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
         "summary": {
             "total_new": total_new,
             "total_duplicate": total_duplicate,
+            "kept_in_library_count": len(files_a),
             "error_count": len(all_errors),
         },
     }
