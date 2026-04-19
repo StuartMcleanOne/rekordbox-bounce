@@ -55,7 +55,7 @@ export default function Done({ result, folderA, mode, preview, onReset }) {
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--danger-dim)', border: '1px solid rgba(204,112,81,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px' }}>↩</div>
         <h2 style={{ fontSize: '28px', fontWeight: 700, color: 'white', letterSpacing: '-0.5px', marginBottom: '8px' }}>Undo complete</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>Files have been moved back. Your library is as it was.</p>
-        <button onClick={onReset} style={resetBtn}>Start over</button>
+        <HoverButton onClick={onReset} baseStyle={resetBtn} hoverStyle={{ background: 'var(--surface-2)' }}>Start over</HoverButton>
       </div>
     )
   }
@@ -172,15 +172,6 @@ export default function Done({ result, folderA, mode, preview, onReset }) {
             { value: result.summary.quarantined_count, label: 'Quarantined', color: 'var(--danger)' },
             { value: result.summary.kept_in_library_count, label: 'Library Untouched', color: 'var(--success)' },
           ]} />
-          {result.summary.quarantined_count > 0 && (
-            <CollapsibleList
-              title={`${result.summary.quarantined_count} files quarantined`}
-              color="var(--danger)" borderColor="rgba(204,112,81,0.25)" dimColor="var(--danger-dim)"
-              destination={result.quarantine_path}
-            >
-              {result.quarantined.map((f, j) => <FileRow key={j} name={f} />)}
-            </CollapsibleList>
-          )}
           {result.per_folder.map((pf, i) => (
             <div key={i}>
               {pf.moved.length > 0 && (
@@ -195,7 +186,15 @@ export default function Done({ result, folderA, mode, preview, onReset }) {
               {pf.errors.length > 0 && <ErrorList errors={pf.errors} sourceName={pf.folder_b_name} />}
             </div>
           ))}
-          {playlists.length > 0 && <PlaylistsSection playlists={playlists} />}
+          {result.summary.quarantined_count > 0 && (
+            <CollapsibleList
+              title={`${result.summary.quarantined_count} files quarantined`}
+              color="var(--danger)" borderColor="rgba(204,112,81,0.25)" dimColor="var(--danger-dim)"
+              destination={result.quarantine_path}
+            >
+              {result.quarantined.map((f, j) => <FileRow key={j} name={f} />)}
+            </CollapsibleList>
+          )}
           {result.summary.kept_in_library_count > 0 && (
             <CollapsibleList
               title={`${result.summary.kept_in_library_count} Library files untouched`}
@@ -205,6 +204,7 @@ export default function Done({ result, folderA, mode, preview, onReset }) {
               <MessageRow text="No files were moved or overwritten." />
             </CollapsibleList>
           )}
+          {playlists.length > 0 && <PlaylistsSection playlists={playlists} />}
           {undoError && (
             <div style={{ marginBottom: '12px', padding: '14px 16px', background: 'var(--danger-dim)', border: '1px solid rgba(204,112,81,0.2)', borderRadius: '8px', color: 'var(--danger)', fontSize: '13px', fontFamily: 'IBM Plex Mono' }}>
               {undoError}
@@ -260,7 +260,7 @@ export default function Done({ result, folderA, mode, preview, onReset }) {
             {undoState === 'loading' ? 'Undoing...' : '↩ Undo'}
           </button>
         )}
-        <button onClick={onReset} style={{ ...resetBtn, flex: 1 }}>Start over</button>
+        <HoverButton onClick={onReset} baseStyle={{ ...resetBtn, flex: 1 }} hoverStyle={{ background: 'var(--surface-2)' }}>Start over</HoverButton>
       </div>
     </div>
   )
@@ -281,12 +281,23 @@ function StatsBar({ stats }) {
 
 function CollapsibleList({ title, color, borderColor, dimColor, destination, children }) {
   const [open, setOpen] = useState(false)
+  const [summaryHover, setSummaryHover] = useState(false)
+  const [iconHover, setIconHover] = useState(false)
   return (
     <details
       style={{ border: `1px solid ${borderColor}`, borderRadius: '10px', background: dimColor, overflow: 'hidden', marginBottom: '12px' }}
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
-      <summary style={{ padding: '14px 20px', cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <summary
+        style={{
+          padding: '14px 20px', cursor: 'pointer', listStyle: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: summaryHover ? 'rgba(255,255,255,0.03)' : 'transparent',
+          transition: 'background 0.1s',
+        }}
+        onMouseEnter={() => setSummaryHover(true)}
+        onMouseLeave={() => setSummaryHover(false)}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Syne', fontSize: '14px', fontWeight: 600, color: 'white' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
           {title}
@@ -295,7 +306,9 @@ function CollapsibleList({ title, color, borderColor, dimColor, destination, chi
         {destination && (
           <button
             onClick={(e) => { e.stopPropagation(); openPath(destination) }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--text-dim)', flexShrink: 0, display: 'flex', alignItems: 'center', borderRadius: '4px' }}
+            onMouseEnter={() => setIconHover(true)}
+            onMouseLeave={() => setIconHover(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--text-muted)', flexShrink: 0, display: 'flex', alignItems: 'center', borderRadius: '4px', opacity: iconHover ? 1 : 0.6, transition: 'opacity 0.15s' }}
             title="Open folder"
           >
             <FolderIcon />
@@ -307,31 +320,36 @@ function CollapsibleList({ title, color, borderColor, dimColor, destination, chi
   )
 }
 
+function PlaylistRow({ path }) {
+  const [hover, setHover] = useState(false)
+  const name = path.split(/[/\\]/).pop()
+  const folder = parentDir(path)
+  return (
+    <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <span style={{ flexShrink: 0, fontSize: '9px', fontFamily: 'IBM Plex Mono', fontWeight: 700, letterSpacing: '0.06em', padding: '2px 5px', border: '1px solid var(--accent)', borderRadius: '3px', color: 'var(--accent)', opacity: 0.8 }}>M3U</span>
+        <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text)', wordBreak: 'break-all' }}>{name}</span>
+      </div>
+      <button
+        onClick={() => openPath(folder)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--text-muted)', flexShrink: 0, display: 'flex', alignItems: 'center', borderRadius: '4px', opacity: hover ? 1 : 0.6, transition: 'opacity 0.15s' }}
+        title="Open folder"
+      >
+        <FolderIcon />
+      </button>
+    </div>
+  )
+}
+
 function PlaylistsSection({ playlists }) {
   return (
     <CollapsibleList
       title="Playlists"
       color="var(--accent)" borderColor="var(--border)" dimColor="var(--surface)"
     >
-      {playlists.map((path, i) => {
-        const name = path.split(/[/\\]/).pop()
-        const folder = parentDir(path)
-        return (
-          <div key={i} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-              <span style={{ flexShrink: 0, fontSize: '9px', fontFamily: 'IBM Plex Mono', fontWeight: 700, letterSpacing: '0.06em', padding: '2px 5px', border: '1px solid var(--accent)', borderRadius: '3px', color: 'var(--accent)', opacity: 0.8 }}>M3U</span>
-              <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '12px', color: 'var(--text)', wordBreak: 'break-all' }}>{name}</span>
-            </div>
-            <button
-              onClick={() => openPath(folder)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--text-dim)', flexShrink: 0, display: 'flex', alignItems: 'center', borderRadius: '4px' }}
-              title="Open folder"
-            >
-              <FolderIcon />
-            </button>
-          </div>
-        )
-      })}
+      {playlists.map((path, i) => <PlaylistRow key={i} path={path} />)}
     </CollapsibleList>
   )
 }
@@ -377,9 +395,24 @@ function FolderIcon() {
   )
 }
 
+function HoverButton({ onClick, baseStyle, hoverStyle, children }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ ...baseStyle, ...(hover ? hoverStyle : {}) }}
+    >
+      {children}
+    </button>
+  )
+}
+
 const resetBtn = {
   padding: '14px', borderRadius: '8px',
   background: 'transparent', color: 'var(--text-muted)',
   border: '1px solid var(--border-bright)', cursor: 'pointer',
   fontSize: '14px', fontFamily: 'IBM Plex Sans',
+  transition: 'background 0.15s',
 }

@@ -2,7 +2,8 @@ const MODES = [
   {
     key: 'sort',
     label: 'SORT',
-    description: "Separates what's new from what's old. So you don't waste time re-analysing tracks you already have. A playlist of new tracks is created for each source folder.",
+    heading: "Find what's new before you commit.",
+    description: "Separates what's new from what's old. So you don't waste time on tracks you already have.",
     color: 'var(--accent)',
     dimColor: 'var(--accent-dim)',
     borderColor: 'var(--accent-glow)',
@@ -10,7 +11,8 @@ const MODES = [
   {
     key: 'merge',
     label: 'MERGE',
-    description: "Brings new and old together. Your existing Library is protected. New tracks are added. Nothing is removed. A playlist is automatically created for each source folder.",
+    heading: "Bring new and old together.",
+    description: "Your existing Library is protected. New tracks are added. Nothing is removed. A playlist is automatically created for each source folder.",
     color: 'var(--accent)',
     dimColor: 'var(--accent-dim)',
     borderColor: 'var(--accent-glow)',
@@ -18,7 +20,8 @@ const MODES = [
   {
     key: 'bounce',
     label: 'BOUNCE',
-    description: "Spring clean. Replaces your old Library with your new one — without overwriting anything. New tracks come in, unmatched tracks go to quarantine. A playlist is automatically created for each source folder.",
+    heading: "Spring clean.",
+    description: "Replaces your old Library with your new one — without overwriting cue points. Unmatched tracks go to quarantine. A playlist is automatically created for each source folder.",
     color: 'var(--danger)',
     dimColor: 'var(--danger-dim)',
     borderColor: 'rgba(204,112,81,0.25)',
@@ -53,26 +56,27 @@ export default function ModeStep({ mode, setMode, onNext }) {
                 textAlign: 'left',
                 transition: 'all 0.15s',
               }}
+              onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = m.borderColor } }}
+              onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = 'var(--border)' } }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 <span style={{
-                  fontFamily: 'IBM Plex Mono', fontSize: '13px', fontWeight: 700,
-                  color: selected ? m.color : 'var(--text-muted)',
-                  letterSpacing: '0.1em',
+                  fontFamily: 'IBM Plex Mono', fontSize: '9px', fontWeight: 700,
+                  letterSpacing: '0.08em', padding: '2px 6px', borderRadius: '4px',
+                  color: m.color,
+                  background: m.key === 'bounce' ? 'var(--danger-dim)' : 'var(--accent-dim)',
+                  border: `1px solid ${m.color}`,
                 }}>
                   {m.label}
                 </span>
                 {selected && (
-                  <span style={{
-                    width: '7px', height: '7px', borderRadius: '50%',
-                    background: m.color, flexShrink: 0,
-                  }} />
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: m.color, flexShrink: 0 }} />
                 )}
               </div>
-              <p style={{
-                fontSize: '13px', lineHeight: 1.55, margin: 0,
-                color: selected ? 'var(--text)' : 'var(--text-muted)',
-              }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: selected ? 'white' : 'var(--text-muted)', marginBottom: '4px', margin: '0 0 4px' }}>
+                {m.heading}
+              </p>
+              <p style={{ fontSize: '13px', lineHeight: 1.55, margin: 0, color: selected ? 'var(--text)' : 'var(--text-dim)' }}>
                 {m.description}
               </p>
             </button>
@@ -88,6 +92,8 @@ export default function ModeStep({ mode, setMode, onNext }) {
           border: 'none', cursor: 'pointer',
           fontSize: '14px', fontWeight: 600, fontFamily: 'IBM Plex Sans',
         }}
+        onMouseEnter={e => { e.currentTarget.style.opacity = '0.9' }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
       >
         Continue →
       </button>

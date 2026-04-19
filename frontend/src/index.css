@@ -6,18 +6,40 @@
   --surface-2:   #172531;
   --border:      #2C4657;
   --border-bright: #4D6473;
-  --text:        #EBD1B4;
+  --text:        #ECD1B4;
   --text-muted:  #9E8A6E;
   --text-dim:    #615443;
   --accent:      #F3BD68;
-  --accent-dim:  rgba(243, 189, 104, 0.12);
-  --accent-glow: rgba(243, 189, 104, 0.25);
+  --accent-dim:  rgba(243,189,104,0.12);
+  --accent-glow: rgba(243,189,104,0.25);
   --danger:      #CC7051;
-  --danger-dim:  rgba(204, 112, 81, 0.10);
+  --danger-dim:  rgba(204,112,81,0.10);
   --success:     #9E8A6E;
-  --success-dim: rgba(158, 138, 110, 0.10);
-  --amber:       #C7843B;
-  --amber-dim:   rgba(199, 132, 59, 0.10);
+  --success-dim: rgba(158,138,110,0.10);
+  --amber:       #C7833B;
+  --amber-dim:   rgba(199,131,59,0.10);
+
+  /* Typography scale */
+  --font-h1:     28px;
+  --font-h2:     18px;
+  --font-body:   14px;
+  --font-small:  12px;
+  --font-label:  11px;
+  --font-tag:    9px;
+
+  /* Radius */
+  --radius-card:   10px;
+  --radius-button: 8px;
+  --radius-tag:    4px;
+  --radius-input:  6px;
+
+  /* Spacing */
+  --space-xs:  8px;
+  --space-sm:  12px;
+  --space-md:  16px;
+  --space-lg:  20px;
+  --space-xl:  24px;
+  --space-xxl: 32px;
 
   font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   color-scheme: dark;

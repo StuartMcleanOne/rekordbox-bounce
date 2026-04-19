@@ -117,6 +117,7 @@ export default function App() {
               setFolderA={setFolderA}
               foldersB={foldersB}
               setFoldersB={setFoldersB}
+              mode={mode}
               onNext={(p) => { setPreview(p); setFilesToKeep([]); setStep('preview') }}
               onBack={() => setStep('mode')}
             />

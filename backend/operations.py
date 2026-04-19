@@ -10,8 +10,8 @@ _LOG_PATH = Path(__file__).parent.parent / "bounce_log.json"
 
 
 def _write_playlist(dest_dir: Path, folder_b_name: str, moved_files: list[str]) -> Path:
-    """Write a .m3u playlist into dest_dir/_Playlists/ listing full paths of moved files."""
-    playlists_dir = dest_dir / "_Playlists"
+    """Write a .m3u playlist into dest_dir/Playlists/ listing full paths of moved files."""
+    playlists_dir = dest_dir / "Playlists"
     playlists_dir.mkdir(exist_ok=True)
     playlist_path = playlists_dir / f"{folder_b_name}.m3u"
     lines = ["#EXTM3U"]
@@ -23,7 +23,7 @@ def _write_playlist(dest_dir: Path, folder_b_name: str, moved_files: list[str]) 
 
 def get_quarantine_dir(folder_a: str) -> Path:
     """Quarantine folder lives in the parent of A, outside Rekordbox's watch."""
-    return Path(folder_a).parent / "RekordboxBounce"
+    return Path(folder_a).parent / "ReadySetBounce"
 
 
 def append_log_entry(entry: dict, log_path: Path = None) -> None:

@@ -7,7 +7,7 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
   const [error, setError] = useState(null)
 
   const canRun =
-    mode === 'sort' ? true :
+    mode === 'sort' ? confirmed :
     mode === 'merge' ? confirmed :
     bounceInput === 'BOUNCE'
 
@@ -37,11 +37,26 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
   }
 
   const labels = {
-    sort: { title: 'Ready to sort', subtitle: "Files will be moved into sibling folders next to each Source. Your Library is not touched.", button: 'Run Sort' },
-    merge: { title: 'Ready to merge', subtitle: 'New files will move into your Library. Duplicates stay where they are.', button: 'Run Merge' },
-    bounce: { title: 'Ready to bounce', subtitle: null, button: 'Run Bounce' },
+    sort: {
+      title: 'Ready to sort',
+      subtitle: 'Files will be sorted into New/ and Duplicate/ folders inside each source folder. Your Library is not touched.',
+      checkbox: 'I understand files will be sorted into subfolders',
+      button: 'Run Sort',
+    },
+    merge: {
+      title: 'Ready to merge',
+      subtitle: 'New files will move into your Library. Duplicates stay where they are.',
+      checkbox: 'I understand this will move files into my Library',
+      button: 'Run Merge',
+    },
+    bounce: {
+      title: 'Ready to bounce',
+      subtitle: null,
+      checkbox: null,
+      button: 'Run Bounce',
+    },
   }
-  const { title, subtitle, button } = labels[mode]
+  const { title, subtitle, checkbox, button } = labels[mode]
 
   return (
     <div>
@@ -57,18 +72,18 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
       {mode === 'bounce' && (
         <div style={{
           padding: '16px 20px', borderRadius: '10px', marginBottom: '20px',
-          background: 'var(--danger-dim)', border: '1px solid rgba(244,63,94,0.3)',
+          background: 'var(--amber-dim)', border: '1px solid var(--amber)',
         }}>
-          <p style={{ color: 'var(--danger)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+          <p style={{ color: 'var(--amber)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Warning
           </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
-            This will quarantine Library files not found in any Source. This cannot be undone automatically if the quarantine folder is deleted.
+          <p style={{ color: 'var(--text)', fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+            Library files not found in any Source will be moved to the ReadySetBounce/ quarantine folder. This cannot be undone if the quarantine folder is deleted.
           </p>
         </div>
       )}
 
-      {mode === 'merge' && (
+      {checkbox && (
         <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '24px' }}>
           <div
             onClick={() => setConfirmed(c => !c)}
@@ -82,9 +97,7 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
           >
             {confirmed && <span style={{ color: '#000', fontSize: '11px', fontWeight: 700 }}>✓</span>}
           </div>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-            I understand this will move files into my Library
-          </span>
+          <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{checkbox}</span>
         </label>
       )}
 
@@ -100,7 +113,7 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
             placeholder="BOUNCE"
             style={{
               width: '100%', padding: '12px 16px', borderRadius: '8px',
-              background: 'var(--surface)', border: `1px solid ${bounceInput === 'BOUNCE' ? 'var(--danger)' : 'var(--border)'}`,
+              background: 'var(--surface)', border: `1px solid ${bounceInput === 'BOUNCE' ? 'var(--accent)' : 'var(--border)'}`,
               color: 'white', fontSize: '14px', fontFamily: 'IBM Plex Mono',
               outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.15s',
@@ -112,7 +125,7 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
       {error && (
         <div style={{
           marginBottom: '16px', padding: '14px 16px', borderRadius: '8px',
-          background: 'var(--danger-dim)', border: '1px solid rgba(244,63,94,0.2)',
+          background: 'var(--danger-dim)', border: '1px solid var(--danger)',
           color: 'var(--danger)', fontSize: '13px', fontFamily: 'IBM Plex Mono',
         }}>
           {error}
@@ -126,10 +139,8 @@ export default function ExecuteStep({ folderA, foldersB, filesToKeep, mode, onRe
           disabled={!canRun || loading}
           style={{
             ...primaryBtn,
-            background: canRun && !loading
-              ? (mode === 'bounce' ? 'var(--danger)' : 'var(--accent)')
-              : 'var(--surface-2)',
-            color: canRun && !loading ? (mode === 'bounce' ? 'white' : '#000') : 'var(--text-dim)',
+            background: canRun && !loading ? 'var(--accent)' : 'var(--surface-2)',
+            color: canRun && !loading ? '#000' : 'var(--text-dim)',
             cursor: canRun && !loading ? 'pointer' : 'not-allowed',
           }}
         >
