@@ -1,19 +1,28 @@
 import { useState } from 'react'
 import './index.css'
+import ModeStep from './components/ModeStep'
 import FolderSetup from './components/FolderSetup'
 import PreviewStep from './components/PreviewStep'
 import ExecuteStep from './components/ExecuteStep'
 import Done from './components/Done'
 
 const STEPS = [
+  { key: 'mode', label: 'Mode' },
   { key: 'setup', label: 'Folders' },
   { key: 'preview', label: 'Preview' },
   { key: 'execute', label: 'Confirm' },
   { key: 'done', label: 'Done' },
 ]
 
+const MODE_COLORS = {
+  sort: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'var(--accent-glow)' },
+  merge: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'var(--accent-glow)' },
+  bounce: { color: 'var(--danger)', dim: 'var(--danger-dim)', border: 'rgba(204,112,81,0.25)' },
+}
+
 export default function App() {
-  const [step, setStep] = useState('setup')
+  const [step, setStep] = useState('mode')
+  const [mode, setMode] = useState('merge')
   const [folderA, setFolderA] = useState('')
   const [foldersB, setFoldersB] = useState([''])
   const [preview, setPreview] = useState(null)
@@ -21,6 +30,17 @@ export default function App() {
   const [result, setResult] = useState(null)
 
   const currentIndex = STEPS.findIndex(s => s.key === step)
+  const mc = MODE_COLORS[mode]
+
+  const handleReset = () => {
+    setStep('mode')
+    setMode('merge')
+    setFolderA('')
+    setFoldersB([''])
+    setPreview(null)
+    setFilesToKeep([])
+    setResult(null)
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
@@ -32,11 +52,20 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'white', letterSpacing: '-0.5px' }}>
-            Rekordbox Bounce
+            ReadySet Bounce
           </h1>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.05em' }}>
             v0.2
           </span>
+          {step !== 'mode' && (
+            <span style={{
+              fontSize: '10px', fontFamily: 'IBM Plex Mono', fontWeight: 700,
+              letterSpacing: '0.1em', padding: '2px 8px', borderRadius: '4px',
+              color: mc.color, background: mc.dim, border: `1px solid ${mc.border}`,
+            }}>
+              {mode.toUpperCase()}
+            </span>
+          )}
         </div>
 
         {/* Step indicator */}
@@ -49,15 +78,15 @@ export default function App() {
                 fontSize: '12px', fontFamily: 'IBM Plex Sans',
                 background: i === currentIndex ? 'var(--accent-dim)' : 'transparent',
                 color: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
-                border: i === currentIndex ? '1px solid rgba(34,211,238,0.25)' : '1px solid transparent',
+                border: i === currentIndex ? '1px solid var(--accent-glow)' : '1px solid transparent',
                 transition: 'all 0.2s',
               }}>
                 <span style={{
                   width: '18px', height: '18px', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '10px',
-                  background: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'rgba(34,211,238,0.2)' : 'var(--surface-2)',
-                  color: i < currentIndex ? '#000' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
+                  background: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'var(--accent-dim)' : 'var(--surface-2)',
+                  color: i < currentIndex ? 'var(--bg)' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
                   fontWeight: 600,
                 }}>
                   {i < currentIndex ? '✓' : i + 1}
@@ -75,13 +104,22 @@ export default function App() {
       {/* Main */}
       <main style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '48px 24px' }}>
         <div style={{ width: '100%', maxWidth: '680px' }}>
+          {step === 'mode' && (
+            <ModeStep
+              mode={mode}
+              setMode={setMode}
+              onNext={() => setStep('setup')}
+            />
+          )}
           {step === 'setup' && (
             <FolderSetup
               folderA={folderA}
               setFolderA={setFolderA}
               foldersB={foldersB}
               setFoldersB={setFoldersB}
+              mode={mode}
               onNext={(p) => { setPreview(p); setFilesToKeep([]); setStep('preview') }}
+              onBack={() => setStep('mode')}
             />
           )}
           {step === 'preview' && (
@@ -89,6 +127,7 @@ export default function App() {
               preview={preview}
               filesToKeep={filesToKeep}
               setFilesToKeep={setFilesToKeep}
+              mode={mode}
               onBack={() => setStep('setup')}
               onConfirm={() => setStep('execute')}
             />
@@ -98,6 +137,7 @@ export default function App() {
               folderA={folderA}
               foldersB={foldersB}
               filesToKeep={filesToKeep}
+              mode={mode}
               onResult={(r) => { setResult(r); setStep('done') }}
               onBack={() => setStep('preview')}
             />
@@ -106,14 +146,9 @@ export default function App() {
             <Done
               result={result}
               folderA={folderA}
-              onReset={() => {
-                setStep('setup')
-                setFolderA('')
-                setFoldersB([''])
-                setPreview(null)
-                setFilesToKeep([])
-                setResult(null)
-              }}
+              mode={mode}
+              preview={preview}
+              onReset={handleReset}
             />
           )}
         </div>

@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react'
 
-export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB, onNext }) {
+const SOURCE_DESCRIPTIONS = {
+  sort: 'Source folder to sort against your Library',
+  merge: 'Fresh tracks to add to your Library',
+  bounce: 'Your new download folder',
+}
+
+export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB, mode, onNext, onBack }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -49,9 +55,10 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <FolderZone
           label="Library"
-          description="Your existing library with cue points"
+          description="Your Primary Music Folder"
           tag="PROTECTED"
-          tagColor="var(--success)"
+          tagColor="var(--accent)"
+          tagBg="var(--surface)"
           value={folderA}
           onChange={setFolderA}
         />
@@ -60,9 +67,10 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
           <FolderZone
             key={i}
             label={`Source ${i + 1}`}
-            description="Fresh tracks to merge in"
+            description={SOURCE_DESCRIPTIONS[mode] || 'Fresh tracks to merge in'}
             tag="SOURCE"
             tagColor="var(--accent)"
+            tagBg="var(--accent-dim)"
             value={val}
             onChange={(v) => updateB(i, v)}
             onRemove={foldersB.length > 1 ? () => removeB(i) : null}
@@ -96,11 +104,23 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
         </div>
       )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !canSubmit}
+      <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '16px 20px', borderRadius: '10px',
+            background: 'transparent', color: 'var(--text-muted)',
+            border: '1px solid var(--border-bright)', cursor: 'pointer',
+            fontSize: '14px', fontFamily: 'IBM Plex Sans',
+          }}
+        >
+          ← Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !canSubmit}
         style={{
-          marginTop: '24px', width: '100%',
+          flex: 1,
           padding: '16px', borderRadius: '10px',
           background: loading || !canSubmit ? 'var(--surface-2)' : 'var(--accent)',
           color: loading || !canSubmit ? 'var(--text-dim)' : '#000',
@@ -111,11 +131,12 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
       >
         {loading ? 'Scanning...' : 'Scan & Preview →'}
       </button>
+      </div>
     </div>
   )
 }
 
-function FolderZone({ label, description, tag, tagColor, value, onChange, onRemove }) {
+function FolderZone({ label, description, tag, tagColor, tagBg, value, onChange, onRemove }) {
   const [dragging, setDragging] = useState(false)
 
   const pickFolder = async () => {
@@ -154,9 +175,10 @@ function FolderZone({ label, description, tag, tagColor, value, onChange, onRemo
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'white', fontFamily: 'Syne' }}>{label}</span>
             <span style={{
-              fontSize: '9px', fontFamily: 'IBM Plex Mono', fontWeight: 500,
+              fontSize: '9px', fontFamily: 'IBM Plex Mono', fontWeight: 700,
               color: tagColor, padding: '2px 6px',
-              border: `1px solid ${tagColor}40`, borderRadius: '4px', letterSpacing: '0.08em',
+              background: tagBg || 'transparent',
+              border: `1px solid ${tagColor}`, borderRadius: '4px', letterSpacing: '0.08em',
             }}>{tag}</span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</p>
