@@ -215,9 +215,9 @@ def undo_sync(
 
 def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
     """
-    For each source folder, move files into sibling folders:
-      [SourceName]_New/       — not in Library
-      [SourceName]_Duplicate/ — already in Library
+    For each source folder, sort files into subfolders inside it:
+      New/       — not in Library
+      Duplicate/ — already in Library
     Never touches folder_a.
     """
     files_a = scan_folder(folder_a)
@@ -227,11 +227,10 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
     for pf in preview["per_folder"]:
         folder_b = pf["folder_b"]
         folder_b_name = pf["folder_b_name"]
-        parent = Path(folder_b).parent
         files_b = scan_folder(folder_b)
 
-        new_folder = parent / f"{folder_b_name}_New"
-        duplicate_folder = parent / f"{folder_b_name}_Duplicate"
+        new_folder = Path(folder_b) / "New"
+        duplicate_folder = Path(folder_b) / "Duplicate"
         new_folder.mkdir(exist_ok=True)
         duplicate_folder.mkdir(exist_ok=True)
 
@@ -265,14 +264,6 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
             except Exception as e:
                 errors.append({"file": filename, "error": str(e)})
 
-        sort_playlist_path = None
-        if moved_new:
-            playlists_dir = Path(folder_b) / "_Playlists"
-            playlists_dir.mkdir(exist_ok=True)
-            sort_playlist_path = playlists_dir / f"{folder_b_name}_New.m3u"
-            lines = ["#EXTM3U"] + [str(new_folder / f) for f in moved_new]
-            sort_playlist_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
         per_folder_results.append({
             "folder_b": folder_b,
             "folder_b_name": folder_b_name,
@@ -280,7 +271,6 @@ def sort_sync(folder_a: str, folders_b: list[str]) -> dict:
             "duplicate_folder": str(duplicate_folder),
             "moved_new": moved_new,
             "moved_duplicate": moved_duplicate,
-            "playlist_path": str(sort_playlist_path) if sort_playlist_path else None,
             "errors": errors,
         })
 

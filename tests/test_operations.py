@@ -200,8 +200,8 @@ def test_sort_creates_sibling_folders(tmp_path):
     with patch("backend.operations._compare_multi", return_value=compare_result):
         result = sort_sync(str(a), [str(b)])
 
-    assert (tmp_path / "techno26_New").is_dir()
-    assert (tmp_path / "techno26_Duplicate").is_dir()
+    assert (b / "New").is_dir()
+    assert (b / "Duplicate").is_dir()
 
 
 def test_sort_moves_new_files_to_new_folder(tmp_path):
@@ -221,11 +221,11 @@ def test_sort_moves_new_files_to_new_folder(tmp_path):
     with patch("backend.operations._compare_multi", return_value=compare_result):
         result = sort_sync(str(a), [str(b)])
 
-    assert (tmp_path / "techno26_New" / "new_track.mp3").exists()
+    assert (b / "New" / "new_track.mp3").exists()
     assert not (b / "new_track.mp3").exists()
     pf = result["per_folder"][0]
     assert pf["moved_new"] == ["new_track.mp3"]
-    assert pf["new_folder"] == str(tmp_path / "techno26_New")
+    assert pf["new_folder"] == str(b / "New")
 
 
 def test_sort_moves_duplicates_to_duplicate_folder(tmp_path):
@@ -245,11 +245,11 @@ def test_sort_moves_duplicates_to_duplicate_folder(tmp_path):
     with patch("backend.operations._compare_multi", return_value=compare_result):
         result = sort_sync(str(a), [str(b)])
 
-    assert (tmp_path / "techno26_Duplicate" / "old_track.mp3").exists()
+    assert (b / "Duplicate" / "old_track.mp3").exists()
     assert not (b / "old_track.mp3").exists()
     pf = result["per_folder"][0]
     assert pf["moved_duplicate"] == ["old_track.mp3"]
-    assert pf["duplicate_folder"] == str(tmp_path / "techno26_Duplicate")
+    assert pf["duplicate_folder"] == str(b / "Duplicate")
 
 
 def test_sort_does_not_touch_library(tmp_path):
@@ -276,7 +276,7 @@ def test_sort_does_not_touch_library(tmp_path):
 def test_sort_skips_collision_with_error(tmp_path):
     a = tmp_path / "Library"
     b = tmp_path / "techno26"
-    new_folder = tmp_path / "techno26_New"
+    new_folder = b / "New"
     a.mkdir(); b.mkdir(); new_folder.mkdir()
     _touch(b, "track.mp3")
     _touch(new_folder, "track.mp3")  # collision
