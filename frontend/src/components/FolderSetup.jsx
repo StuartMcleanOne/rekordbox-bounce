@@ -51,7 +51,7 @@ export default function FolderSetup({ folderA, setFolderA, foldersB, setFoldersB
           label="Library"
           description="Your existing library with cue points"
           tag="PROTECTED"
-          tagColor="var(--success)"
+          tagColor="var(--accent)"
           value={folderA}
           onChange={setFolderA}
         />

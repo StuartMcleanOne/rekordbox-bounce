@@ -15,9 +15,9 @@ const STEPS = [
 ]
 
 const MODE_COLORS = {
-  sort: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'rgba(34,211,238,0.25)' },
-  merge: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'rgba(34,211,238,0.25)' },
-  bounce: { color: 'var(--danger)', dim: 'var(--danger-dim)', border: 'rgba(244,63,94,0.25)' },
+  sort: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'var(--accent-glow)' },
+  merge: { color: 'var(--accent)', dim: 'var(--accent-dim)', border: 'var(--accent-glow)' },
+  bounce: { color: 'var(--danger)', dim: 'var(--danger-dim)', border: 'rgba(204,112,81,0.25)' },
 }
 
 export default function App() {
@@ -52,7 +52,7 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'white', letterSpacing: '-0.5px' }}>
-            Rekordbox Bounce
+            ReadySet Bounce
           </h1>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono', letterSpacing: '0.05em' }}>
             v0.2
@@ -78,15 +78,15 @@ export default function App() {
                 fontSize: '12px', fontFamily: 'IBM Plex Sans',
                 background: i === currentIndex ? 'var(--accent-dim)' : 'transparent',
                 color: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
-                border: i === currentIndex ? '1px solid rgba(34,211,238,0.25)' : '1px solid transparent',
+                border: i === currentIndex ? '1px solid var(--accent-glow)' : '1px solid transparent',
                 transition: 'all 0.2s',
               }}>
                 <span style={{
                   width: '18px', height: '18px', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '10px',
-                  background: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'rgba(34,211,238,0.2)' : 'var(--surface-2)',
-                  color: i < currentIndex ? '#000' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
+                  background: i < currentIndex ? 'var(--accent)' : i === currentIndex ? 'var(--accent-dim)' : 'var(--surface-2)',
+                  color: i < currentIndex ? 'var(--bg)' : i === currentIndex ? 'var(--accent)' : 'var(--text-dim)',
                   fontWeight: 600,
                 }}>
                   {i < currentIndex ? '✓' : i + 1}

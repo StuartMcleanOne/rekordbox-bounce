@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #09090f;
-  --surface: #111118;
-  --surface-2: #18181f;
-  --border: #1e1e28;
-  --border-bright: #2a2a38;
-  --text: #c8c8d8;
-  --text-muted: #5a5a72;
-  --text-dim: #3a3a50;
-  --accent: #22d3ee;
-  --accent-dim: rgba(34, 211, 238, 0.12);
-  --accent-glow: rgba(34, 211, 238, 0.25);
-  --danger: #f43f5e;
-  --danger-dim: rgba(244, 63, 94, 0.1);
-  --success: #10b981;
-  --success-dim: rgba(16, 185, 129, 0.1);
-  --amber: #f59e0b;
-  --amber-dim: rgba(245, 158, 11, 0.1);
+  --bg:          #0A0714;
+  --surface:     #0F1A24;
+  --surface-2:   #172531;
+  --border:      #2C4657;
+  --border-bright: #4D6473;
+  --text:        #EBD1B4;
+  --text-muted:  #9E8A6E;
+  --text-dim:    #615443;
+  --accent:      #F3BD68;
+  --accent-dim:  rgba(243, 189, 104, 0.12);
+  --accent-glow: rgba(243, 189, 104, 0.25);
+  --danger:      #CC7051;
+  --danger-dim:  rgba(204, 112, 81, 0.10);
+  --success:     #9E8A6E;
+  --success-dim: rgba(158, 138, 110, 0.10);
+  --amber:       #C7843B;
+  --amber-dim:   rgba(199, 132, 59, 0.10);
 
   font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   color-scheme: dark;
