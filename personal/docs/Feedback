@@ -1,0 +1,9 @@
+The good news — this is the most complete of all your projects. 23 tests passing, all three modes working, solid architecture, good design. The core logic is sound and the library-safety principle is genuinely well thought out.
+The stuff that actually matters to fix:
+Items 1-3 on the priority list are trivial and should just be done — Figma script, window title, SORT folder labels. An hour's work. No decisions needed, just execution.
+Item 11 — the drag and drop — is the only UX bug that a real user would notice immediately. That needs a decision though: do you actually want drag and drop or do you just remove the visual affordance? That's a conversation, not a code task.
+The stuff I'd park:
+Frontend tests — not worth it right now. This is a personal tool with a small user base. Ship it first.
+Packaging/Electron — this is the real gap between "project" and "product." But it's also a significant undertaking. Portfolio-wise you don't need it. Product-wise you eventually do.
+The rename refactor — since you just flagged it, add a global find for Rekordbox across the entire codebase. Variable names, comments, strings, docs, all of it. Clean that up as part of the next session.
+My overall read — RSB is close. Closer than the Instagram clone was today. One focused session gets it portfolio-ready.
